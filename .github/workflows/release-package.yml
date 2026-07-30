@@ -1,0 +1,130 @@
+---
+name: Release package
+
+"on":
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Git starter kit release tag whose package asset will be uploaded
+        required: true
+        type: string
+      agent_rules_ref:
+        description: agent-coding-rules latest release or SemVer tag
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build release package
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Resolve release inputs
+        id: refs
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_AGENT_RULES_REF: ${{ inputs.agent_rules_ref }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            starter_ref="$RELEASE_TAG"
+            agent_rules_ref="latest"
+          else
+            starter_ref="$INPUT_TAG"
+            agent_rules_ref="$INPUT_AGENT_RULES_REF"
+          fi
+
+          # Keep this pattern aligned with repository-audit SemVer smoke tests.
+          semver_tag_pattern='^v(0|[1-9][0-9]*)\.'
+          semver_tag_pattern+='(0|[1-9][0-9]*)\.'
+          semver_tag_pattern+='(0|[1-9][0-9]*)'
+          semver_tag_pattern+='(-((0|[1-9][0-9]*|[0-9A-Za-z-]*'
+          semver_tag_pattern+='[A-Za-z-][0-9A-Za-z-]*)'
+          semver_tag_pattern+='(\.(0|[1-9][0-9]*|[0-9A-Za-z-]*'
+          semver_tag_pattern+='[A-Za-z-][0-9A-Za-z-]*))*))?'
+          semver_tag_pattern+='(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+          if ! [[ "$starter_ref" =~ $semver_tag_pattern ]]; then
+            echo "starter_ref must be a SemVer tag prefixed with v." >&2
+            exit 1
+          fi
+
+          if [ -z "${agent_rules_ref:-}" ]; then
+            echo "agent_rules_ref must be set to latest or a SemVer tag." >&2
+            exit 1
+          fi
+
+          if [ "$agent_rules_ref" != "latest" ] &&
+             ! [[ "$agent_rules_ref" =~ $semver_tag_pattern ]]; then
+            message="agent_rules_ref must be latest or a SemVer tag"
+            message+=" prefixed with v."
+            echo "$message" >&2
+            exit 1
+          fi
+
+          echo "starter_ref=$starter_ref" >> "$GITHUB_OUTPUT"
+          echo "agent_rules_ref=$agent_rules_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Generate agent rules token
+        id: agent-rules-token
+        # actions/create-github-app-token@v3
+        # yamllint disable-line rule:line-length
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.AGENT_RULES_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AGENT_RULES_APP_PRIVATE_KEY }}
+          owner: asphyx0r
+          repositories: agent-coding-rules
+          permission-contents: read
+
+      - name: Checkout release tag
+        # actions/checkout@v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+          ref: ${{ steps.refs.outputs.starter_ref }}
+
+      - name: Build package
+        id: package
+        shell: pwsh
+        env:
+          STARTER_REF: ${{ steps.refs.outputs.starter_ref }}
+          AGENT_RULES_REF: ${{ steps.refs.outputs.agent_rules_ref }}
+          GITHUB_TOKEN: ${{ steps.agent-rules-token.outputs.token }}
+        run: |
+          ./tools/build-release-package.ps1 `
+            -StarterRef $env:STARTER_REF `
+            -AgentRulesRef $env:AGENT_RULES_REF `
+            -OutputDirectory $env:RUNNER_TEMP
+
+      - name: Upload release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+          STARTER_REF: ${{ steps.refs.outputs.starter_ref }}
+        run: gh release upload "$STARTER_REF" "$PACKAGE_PATH"
+
+  promote:
+    name: Promote validated release
+    needs: package
+    if: github.event_name == 'release' && github.event.release.prerelease
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Promote release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: >-
+          gh release edit "$RELEASE_TAG" --repo "$REPOSITORY"
+          --prerelease=false --latest

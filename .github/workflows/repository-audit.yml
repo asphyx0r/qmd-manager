@@ -1,0 +1,61 @@
+---
+name: Repository audit
+
+"on":
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: Markdown lint
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        # actions/checkout@v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Run markdown audit
+        run: bash tools/repository-audit.sh markdown
+
+  spelling:
+    name: Spelling
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        # actions/checkout@v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Run spelling audit
+        run: bash tools/repository-audit.sh spelling
+
+  static:
+    name: Static checks
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        # actions/checkout@v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Run static audit
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          GIT_AUTHOR_NAME: Codex
+          GIT_AUTHOR_EMAIL: codex@example.com
+          GIT_COMMITTER_NAME: Codex
+          GIT_COMMITTER_EMAIL: codex@example.com
+        run: bash tools/repository-audit.sh static

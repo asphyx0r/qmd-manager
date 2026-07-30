@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-07-23T10:57:24.6273341Z",
+  "starterKit": {
+    "repository": "https://github.com/asphyx0r/git-starter-kit",
+    "ref": "v2.0.3",
+    "commit": "0d3ae03a4a86ef85861fb2d9f0e3f745f0e94eed"
+  },
+  "agentRules": {
+    "repository": "https://github.com/asphyx0r/agent-coding-rules",
+    "requestedRef": "latest",
+    "ref": "v1.40.2",
+    "commit": "d4fa9b1fae97579f61b83f4296ed1e922913d652",
+    "commitDate": "2026-07-21T17:31:56+02:00",
+    "releaseUrl": "https://github.com/asphyx0r/agent-coding-rules/releases/tag/v1.40.2",
+    "releaseDate": "07/21/2026 16:01:10",
+    "files": [
+      "AGENTS.md",
+      "CODING_RULES.md",
+      "COMMIT_RULES.md",
+      "DOCUMENTATION_RULES.md",
+      "LANGUAGE_RULES.md",
+      "RELEASE_RULES.md"
+    ]
+  }
+}
