@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-30T21:43:52.7469269Z",
+  "repository": {
+    "name": "git-starter-kit",
+    "slug": "asphyx0r/git-starter-kit",
+    "ref": "v2.1.4",
+    "commit": "b000de652ede85bb2ed4284efac1c2b2fb2ecbe7"
+  },
+  "starterKit": {
+    "repository": "https://github.com/asphyx0r/git-starter-kit",
+    "ref": "v2.1.4",
+    "commit": "b000de652ede85bb2ed4284efac1c2b2fb2ecbe7"
+  },
+  "agentRules": {
+    "repository": "https://github.com/asphyx0r/agent-coding-rules",
+    "ref": "v1.40.2",
+    "commit": "d4fa9b1fae97579f61b83f4296ed1e922913d652"
+  },
+  "files": [
+    {
+      "path": "_agent-rules-source.json",
+      "sha256": "b945ff002b78691ae41db12854b6bfc53dfc49d8344bad95f22d921dc5e6d46a",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".agents/skills/git-commit-push-tag/references/git-commit-push-tag.txt",
+      "sha256": "6a8ee7701efca4230bf419ae2c20bc55443cf4368df7f623aa027e11e1cd3c9d",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".githooks/commit-msg",
+      "sha256": "69a68b98736cea9e34de77717736b418443ee7987911a73b49a5247eb11469ef",
+      "mode": "100755",
+      "strategy": "replace"
+    },
+    {
+      "path": ".githooks/pre-commit",
+      "sha256": "f0f12d2fcef7b96cb8f6657e209896f2df605961acec2ff2032bc82cb3f9522a",
+      "mode": "100755",
+      "strategy": "replace"
+    },
+    {
+      "path": "tools/backup-target-directory.py",
+      "sha256": "8ad8cfd79b6590069b2a1035fe138d961576fc9df13df0bcd3d29f6c2ade7898",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "tools/build-release-package.ps1",
+      "sha256": "4f6b1ed8eab312572845d308627f0d02120e1ac90382f0415dec83ccd1decebb",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": "tools/git-init.ps1",
+      "sha256": "1aee8c6e486c50231bc1f06776ea431b303d7632788d06af58eef12a3e0199c4",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "tools/git-init.sh",
+      "sha256": "58c6df35f7b58f3a88e2a95c9685022ee6f448aac53be9c428bee4b0e86a2867",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "tools/README.md",
+      "sha256": "5798ae9f22964903cffc982417eb7108967d0902d9bea6e22766ae6160f66a4e",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": "tools/repository-audit.sh",
+      "sha256": "b5e07c396df549bc86939419a0ae114e4c4eda6e9470488775760fcb398282c6",
+      "mode": "100755",
+      "strategy": "merge"
+    },
+    {
+      "path": "tools/starter-kit-upgrade.py",
+      "sha256": "4e00a4bda9c18e3603946fe2f5fc7d239373e81aa034f7d56a7d53b96444b82f",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "docs/release-package.md",
+      "sha256": "906641bd370f9951da7e42e99cbdec2d84ded5a3334e0a599b52e6b4ab128ef1",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": "docs/repository-files.md",
+      "sha256": "906221a1e8df1e24cd5a5b67271bf7b999428c09385bcde188fad5af199caff5",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".agents/skills/git-commit-push-tag/agents/openai.yaml",
+      "sha256": "e59b29f97ad74a922ad28c079165331bfe396a20d1c439fdf78679e6c032164a",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "docs/repository-migration.md",
+      "sha256": "6259e2039667c840794f62c97e71c9d6f8e481fe3db5e93bea24e60ef0a3daca",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "templates/.env.template",
+      "sha256": "330ef9aa4c4a13c73d88db624e7c2919174ddb36f33c621f50d6924acca5e9fc",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/.gitconfig",
+      "sha256": "ad1899ff45c202d1bee09d547adf3ae9c5c408dc510ec1af49edbbbe4ffb783e",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/CHANGELOG.md",
+      "sha256": "388607f7c11e862aa542adc697fb7d43e22c369580e3b95aab8eaa1dceb9c256",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/CODE_OF_CONDUCT.md",
+      "sha256": "e224828bb370d8b59f7f342af56285e8277853596079ead98d6b85e06c1bd992",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/CONTRIBUTING.md",
+      "sha256": "6b677441ccf95c796f65c87ce54270dfab32949c66d461cde3b5c5bd8f63ff99",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/GITHUB_RELEASE_NOTES.md",
+      "sha256": "047e102436777ee0cb68f8e7ab95a312ab58327f16494ec1632da0951ff69ed0",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/README_TOOLS.md",
+      "sha256": "d51e8c9bd0fa66cf0f8458d915cfac4751386ff3d35faf89ba7edd35429e3b1c",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/README.md",
+      "sha256": "2e89738a20b0a53c84b49ace73a2246c7f68239d0ca6c5b208282b3089e23f90",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/SECURITY.md",
+      "sha256": "1c7044826e643cf1f794aa46e511a37f05163e43a76b4ca09e71885309a3d88c",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/SKILLS.md",
+      "sha256": "bd7175a4b35f1adf0d53962202047fbbe87ee535bee11ffc1b255545ab041702",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/SUPPORT.md",
+      "sha256": "2941a7cd513684a1456369ab64effe02ae1ee7d77424a8d02059640a18e20006",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "templates/.codex/config.toml",
+      "sha256": "262e5845ed11b2f8a22836b682ac7ffb0ba4a1cb686748e8ae07dae620d25858",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "docs/SKILLS.md",
+      "sha256": "c285482685b6ac02e260459bbbcc2a19904508162206fff2dbb07039920806b6",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".vscode/extensions.json",
+      "sha256": "d2df7b45b5f2b926608800228351ad312be5e2460a6384e04f9971def9b8eac5",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".agents/skills/git-commit-push-tag/SKILL.md",
+      "sha256": "672ddbca3f14d36d412ce584e19483dd341a64d7e869cbb3149a03b7f7fa0370",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "tests/test_backup_target_directory.py",
+      "sha256": "a26cf92a90b98cff12562e97d475b861faa4716ff1aba2e7fb543fccaf0e01e7",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".codespellrc",
+      "sha256": "67b737d34ff2faee3534c79674a2e1eff79c2ee12757fa0baae6de711e9190cc",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".editorconfig",
+      "sha256": "0441e87e75f826bc8e2f908cf10c0597073130e7301bbd692f4d793ebb1e168c",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "a6db6fba78135ad496b08e550aefd118acc634120b6102fe2693cae9c78249b7",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "54445ddec60ba4540e681fba82522dfb89b2e5aad9bb203cc5e2f95530c0acf4",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".gitmessage",
+      "sha256": "b8598ede8ae51957f746de50ba27c48f4ce3516a18119310877da42063c9cfda",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".markdownlint-cli2.yaml",
+      "sha256": "0e1ac110636833d43d75ebff7b336b0089aab9006b2c1e515e375c4ade14586c",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "6bade8daa4a712c17eae637cdc761a0edd235f32dd3b8cdfb7f1a867c4c2b711",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "ea5496ea3d0702793e1f2d8756760a3a0bf292cb94b4c175d31783788eccb2c1",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "sha256": "be98234ac8abb2e2443e06b471eb074f06594fee770698d14b82540cafa3419e",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "CODING_RULES.md",
+      "sha256": "c550d0a6c60c64b1ed1bb7ce0e0f305225648d261dbbf855a83952d70b84a241",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "COMMIT_RULES.md",
+      "sha256": "9c0b84eaa56c6c46d32db444129c42a1d6c90e35f6bec0e3521a50ef6889df52",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "commitlint.config.cjs",
+      "sha256": "d03eb3b1c71e66da721e24e68f22f96db3184cb91f7d862dc7f0d17855c81c38",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "tests/test_starter_kit_upgrade.py",
+      "sha256": "b5a403047db3c231b8196ec2098d9ee0d34b7e9eaff57c447509f02b008e9af1",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "sha256": "ed1844291acb804c9bad9e58772c55b0adc87e183817c94a263492c2f817f50e",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "LANGUAGE_RULES.md",
+      "sha256": "8493bf17910c22ed9a4d7ede25e7f528de1f89efca0c6de8837655854b2744ed",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "aefc2c745aef7877196f1615ac6b0e0c89069d53ad4a5daaeb2aafe943af928d",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "README.md",
+      "sha256": "67bd6ea68f287cecfd369bf6a4af9c08a25b4e51bcdaab6e5fa61e4b1365be2f",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "RELEASE_RULES.md",
+      "sha256": "8b76e33f4597e0b963e0151fb37c1b171578fc61d49d680d37281c50bc6ce16f",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": "SECURITY.md",
+      "sha256": "fd3e7d76666f3d46f5cd587852758b678939e7d38913a3711e0803e9f2bd0a2d",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": "SUPPORT.md",
+      "sha256": "81401588b2e07a085269cf6bd9279f1dc033727d0e461d31da7253b3d27d563f",
+      "mode": "100644",
+      "strategy": "initialize-only"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "sha256": "6c87299bc7c124ee7c085b24c86fd4d8822675f21c36018d69bd0e3ca1fbc3a3",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "sha256": "f89f3165612429686fee540e4cc54ad9c4c4c92fe3d58e188a7e98346fc81463",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/documentation.md",
+      "sha256": "f3559f686496e842214f121124d8bf320b21b2b2684fe3f320a172dfefce81de",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "sha256": "cd2dd144527ba02ff11028b993c272d6104b11851567d8a406e0bb3d6e70fc13",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".github/workflows/release-package.yml",
+      "sha256": "b597755b926362e0785bb350e42678167b4bddba2bae0c1a2b879b7fbec3482b",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": ".github/workflows/repository-audit.yml",
+      "sha256": "e06ed5518a335160435c45632a39869a804b43a97c278c723da92a78b322d587",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
+      "path": "DOCUMENTATION_RULES.md",
+      "sha256": "a1bd7eb55d64c102285b4bf50207094de2781eca0383624f98c2d9bf64e6425f",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
+      "path": ".vscode/settings.json",
+      "sha256": "0902a3d9b22dad23bd1281b1d086306c44f40ec9d847d0d3de56644b891914c5",
+      "mode": "100644",
+      "strategy": "replace"
+    }
+  ]
+}

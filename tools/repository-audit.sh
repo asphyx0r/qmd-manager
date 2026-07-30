@@ -73,7 +73,7 @@ resolve_powershell_command() {
 
   case "$(uname -s 2>/dev/null || true)" in
     CYGWIN*|MINGW*|MSYS*)
-      resolve_command powershell.exe pwsh.exe pwsh
+      resolve_command pwsh.exe pwsh powershell.exe
       return
       ;;
   esac
@@ -175,6 +175,30 @@ function extractWorkflowPattern() {
   return parts.join("");
 }
 
+function extractPythonPattern() {
+  const content = readFile("tools/backup-target-directory.py");
+  const block = content.match(
+    /^SEMVER_TAG_PATTERN = re\.compile\(\n([\s\S]*?)^\)$/m
+  );
+  if (!block) {
+    throw new Error("Unable to extract Python backup SemVer pattern.");
+  }
+
+  const parts = [];
+  const expression = /^\s*r"([^"]*)"$/gm;
+  let match = expression.exec(block[1]);
+  while (match) {
+    parts.push(match[1]);
+    match = expression.exec(block[1]);
+  }
+
+  if (parts.length === 0) {
+    throw new Error("Unable to extract Python backup SemVer fragments.");
+  }
+
+  return parts.join("");
+}
+
 const patterns = new Map([
   [
     "tools/git-init.sh",
@@ -200,6 +224,7 @@ const patterns = new Map([
       "release package SemVer pattern"
     ),
   ],
+  ["tools/backup-target-directory.py", extractPythonPattern()],
   [".github/workflows/release-package.yml", extractWorkflowPattern()],
 ]);
 
@@ -211,6 +236,24 @@ for (const [source, pattern] of patterns) {
   }
 }
 JS
+}
+
+check_release_package_portability() {
+  # shellcheck disable=SC2016
+  if grep -F \
+    'toolkit_path="$RUNNER_TEMP/git-starter-kit-' \
+    .github/workflows/release-package.yml >/dev/null; then
+    echo "Release workflow hard-codes the starter-kit toolkit name." >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC2016
+  if ! grep -F \
+    'repository_name="${GITHUB_REPOSITORY##*/}"' \
+    .github/workflows/release-package.yml >/dev/null; then
+    echo "Release workflow does not derive the packaged repository name." >&2
+    exit 1
+  fi
 }
 
 run_commitlint() {
@@ -323,13 +366,16 @@ run_powershell_parse_readonly() {
 
 run_qmd_script_tests() {
   local pwsh_cmd
+  local test_name
   local test_path
   pwsh_cmd="$(resolve_powershell_command)"
-  test_path="$(
-    to_pwsh_path "$repository_root/tests/Initialize-QmdCollection.Tests.ps1"
-  )"
 
-  "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$test_path"
+  for test_name in \
+    Initialize-QmdCollection.Tests.ps1 \
+    Invoke-QmdBackup.Tests.ps1; do
+    test_path="$(to_pwsh_path "$repository_root/tests/$test_name")"
+    "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$test_path"
+  done
 }
 
 run_commitlint_readonly() {
@@ -374,6 +420,10 @@ run_script_smoke() {
   pwsh_cmd="$(resolve_powershell_command)"
 
   ensure_audit_temp
+
+  "$python_cmd" -B -m unittest discover \
+    -s tests \
+    -p "test_*.py"
 
   export GIT_AUTHOR_NAME="${GIT_AUTHOR_NAME:-Codex}"
   export GIT_AUTHOR_EMAIL="${GIT_AUTHOR_EMAIL:-codex@example.com}"
@@ -508,8 +558,8 @@ run_script_smoke() {
     exit 1
   fi
 
-  "$pwsh_cmd" -NoProfile -File "$git_init_ps1" --help
-  if "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+  "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" --help
+  if "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" \
     --path "$(to_pwsh_path "$audit_temp")" \
     --tag invalid; then
     echo "PowerShell init accepted an invalid tag." >&2
@@ -520,7 +570,7 @@ run_script_smoke() {
   local pwsh_invalid_git_output="$audit_temp/git-init-pwsh-invalid-git.out"
   mkdir -p "$pwsh_invalid_git_target/.git"
   printf 'hello\n' > "$pwsh_invalid_git_target/README.md"
-  if printf 'y\n' | "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+  if printf 'y\n' | "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" \
     --path "$(to_pwsh_path "$pwsh_invalid_git_target")" \
     --tag v1.0.0 >"$pwsh_invalid_git_output" 2>&1; then
     echo "PowerShell init accepted invalid .git metadata." >&2
@@ -534,7 +584,7 @@ run_script_smoke() {
   local pwsh_cancel_target="$audit_temp/git-init-pwsh-cancel"
   mkdir -p "$pwsh_cancel_target"
   printf 'hello\n' > "$pwsh_cancel_target/README.md"
-  printf 'y\nn\n' | "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+  printf 'y\nn\n' | "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" \
     --path "$(to_pwsh_path "$pwsh_cancel_target")" \
     --tag v1.0.0
   if [ -e "$pwsh_cancel_target/.git" ]; then
@@ -549,7 +599,7 @@ run_script_smoke() {
   mkdir -p "$pwsh_verbose_target/templates"
   printf 'hello\n' >"$pwsh_verbose_target/README.md"
   printf 'PLACEHOLDER=value\n' >"$pwsh_verbose_target/templates/.env.template"
-  printf 'y\ny\nn\n' | "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+  printf 'y\ny\nn\n' | "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" \
     --verbose \
     --path "$(to_pwsh_path "$pwsh_verbose_target")" \
     --tag v1.0.0 >"$pwsh_verbose_output" 2>&1
@@ -592,7 +642,7 @@ run_script_smoke() {
   mkdir -p "$pwsh_target"
   printf 'hello\n' > "$pwsh_target/README.md"
   printf 'hello spaces\n' > "$pwsh_target/notes with spaces.txt"
-  printf 'y\ny\n' | "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+  printf 'y\ny\n' | "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" \
     --path "$(to_pwsh_path "$pwsh_target")" \
     --tag v1.0.0
   if [ -n "$(git -C "$pwsh_target" status --short)" ]; then
@@ -603,7 +653,7 @@ run_script_smoke() {
   local pwsh_semver_target="$audit_temp/git-init-pwsh-semver-smoke"
   mkdir -p "$pwsh_semver_target"
   printf 'hello\n' > "$pwsh_semver_target/README.md"
-  printf 'y\ny\n' | "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+  printf 'y\ny\n' | "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$git_init_ps1" \
     --path "$(to_pwsh_path "$pwsh_semver_target")" \
     --tag "$complex_semver_tag"
   if [ -n "$(git -C "$pwsh_semver_target" status --short)" ]; then
@@ -613,8 +663,8 @@ run_script_smoke() {
 
   local release_output="$audit_temp/release-package-smoke"
   local latest_package="$release_output/latest-release-package.zip"
-  "$pwsh_cmd" -NoProfile -File "$build_release_package_ps1" \
-    -StarterRef local-test \
+  "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$build_release_package_ps1" \
+    -RepositoryRef local-test \
     -AgentRulesRef latest \
     -OutputDirectory "$(to_pwsh_path "$release_output")" \
     -PackageName latest-release-package.zip
@@ -658,8 +708,55 @@ PY
     exit 1
   fi
 
-  if "$pwsh_cmd" -NoProfile -File "$build_release_package_ps1" \
-    -StarterRef local-test \
+  "$python_cmd" - "$latest_package" <<'PY'
+import hashlib
+import json
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    names = {name for name in archive.namelist() if not name.endswith("/")}
+    source = json.load(archive.open("_agent-rules-source.json"))
+    files = json.load(archive.open("_starter-kit-files.json"))
+    if source["schemaVersion"] != 2:
+        raise SystemExit("Unexpected release provenance schema.")
+    if source["repository"]["name"] != "qmd-manager":
+        raise SystemExit("Unexpected packaged repository name.")
+    if files["schemaVersion"] != 1:
+        raise SystemExit("Unexpected managed-file schema.")
+    listed = set()
+    strategies = {}
+    for entry in files["files"]:
+        path = entry["path"]
+        listed.add(path)
+        strategies[path] = entry["strategy"]
+        if path not in names:
+            raise SystemExit(f"Managed file missing from ZIP: {path}")
+        digest = hashlib.sha256(archive.read(path)).hexdigest()
+        if digest != entry["sha256"]:
+            raise SystemExit(f"Managed file digest mismatch: {path}")
+        if entry["strategy"] not in {"initialize-only", "merge", "replace"}:
+            raise SystemExit(f"Unexpected upgrade strategy: {path}")
+    names.remove("_starter-kit-files.json")
+    if names != listed:
+        missing = ", ".join(sorted(names - listed))
+        unexpected = ", ".join(sorted(listed - names))
+        raise SystemExit(
+            "Managed-file coverage mismatch. "
+            f"Missing: {missing or '(none)'}. "
+            f"Unexpected: {unexpected or '(none)'}."
+        )
+    expected_strategies = {
+        "docs/release-package.md": "merge",
+        "docs/repository-migration.md": "initialize-only",
+    }
+    for path, strategy in expected_strategies.items():
+        if strategies.get(path) != strategy:
+            raise SystemExit(f"Unexpected upgrade strategy for {path}.")
+PY
+
+  if "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$build_release_package_ps1" \
+    -RepositoryRef local-test \
     -AgentRulesRef invalid \
     -OutputDirectory "$(to_pwsh_path "$release_output")"; then
     echo "Release package accepted an invalid agent rules ref." >&2
@@ -682,6 +779,7 @@ run_static() {
   shellcheck .githooks/commit-msg
   shellcheck tools/git-init.sh
   check_semver_pattern_drift "$node_cmd"
+  check_release_package_portability
   run_powershell_parse
   run_qmd_script_tests
   run_script_smoke
@@ -725,6 +823,7 @@ run_readonly() {
   "$shellcheck_cmd" .githooks/commit-msg
   "$shellcheck_cmd" tools/git-init.sh
   check_semver_pattern_drift "$node_cmd"
+  check_release_package_portability
   run_powershell_parse_readonly
   run_qmd_script_tests
   "$node_cmd" --check commitlint.config.cjs

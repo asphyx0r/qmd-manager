@@ -6,14 +6,146 @@ This directory contains repository management tools retained for QMD Manager.
 Each tool is documented as an operational reference: what it does, how to run
 it, which options it accepts, how it exits, and what practices keep usage safe.
 
+## backup-target-directory.py
+
+### Features
+
+- Copies an entire source directory tree into a temporary staging directory.
+- Includes Git metadata, hidden files, and tracked, untracked, or ignored files
+  that are present during the copy.
+- Creates a compressed ZIP archive in a separate existing target directory.
+- Rejects symbolic links in the source tree.
+- Names archives with the source directory, timestamp, Git `HEAD`, and an exact
+  matching SemVer tag.
+- Supports a side-effect-free dry run and an optional staging parent directory.
+
+### Synopsis
+
+```text
+usage: python tools/backup-target-directory.py [options]
+
+options:
+  -h, --help                       show help and exit
+  --version                        show version and exit
+  --dry-run                        simulate execution without modifying data
+  -v, --verbose                    enable DEBUG logs
+  -d, --source-directory BASEDIR   existing source directory tree to back up
+  -t, --target-directory TARGETDIR existing directory for the ZIP archive
+  -b, --buffer-directory BUFFERDIR existing staging parent directory
+```
+
+### Description
+
+`backup-target-directory.py` creates a staged ZIP backup of an existing
+directory tree. The target and staging directories must remain outside the
+source so the generated data cannot enter the backup. The script copies the
+source to temporary staging before creating a same-directory temporary ZIP and
+publishing the final archive.
+
+When the source belongs to a readable Git repository, the archive name records
+the 12-character abbreviated `HEAD`. It includes a SemVer tag only when that
+tag points exactly to the captured commit. Every final archive uses this
+format:
+
+```text
+<SOURCE>-<YYYYMMDD>-<HHMMSS>-<HEAD>-<SEMVER-TAG>.zip
+```
+
+For example:
+
+```text
+git-starter-kit-20260730-165813-0d3ae03a4a86-v2.0.3.zip
+```
+
+When no commit can be read, `<HEAD>` is `000000000000`. When no matching
+SemVer tag can be read, `<SEMVER-TAG>` is `v0.0.0`. These placeholders keep
+the filename structure stable.
+
+After staging, the script resolves the source Git identity again. It stops
+before ZIP creation if `HEAD` or the selected tag changed during the copy.
+
+### Usage/Examples
+
+Preview a backup of the current repository into an existing sibling
+directory:
+
+```bash
+python tools/backup-target-directory.py \
+  --dry-run \
+  --source-directory . \
+  --target-directory ../backups
+```
+
+Create the archive:
+
+```bash
+python tools/backup-target-directory.py \
+  --source-directory . \
+  --target-directory ../backups
+```
+
+Use an existing staging parent on another volume:
+
+```bash
+python tools/backup-target-directory.py \
+  --source-directory . \
+  --target-directory ../backups \
+  --buffer-directory /path/to/staging
+```
+
+### Options
+
+- `-h`, `--help`: prints the version and usage information, then exits.
+- `--version`: prints script version `0.1.0`, then exits.
+- `--dry-run`: validates the source, target, staging location, symbolic-link
+  policy, Git identity, and final name without creating staging data or a ZIP.
+- `-v`, `--verbose`: prints DEBUG logs in addition to normal status messages.
+- `-d PATH`, `--source-directory PATH`: existing directory tree to back up.
+  This option is required.
+- `-t PATH`, `--target-directory PATH`: existing directory where the ZIP is
+  created. This option is required and must not be inside the source.
+- `-b PATH`, `--buffer-directory PATH`: optional existing staging parent. An
+  unusable value produces a warning and falls back to the user temporary
+  directory.
+
+### Exit Status
+
+- `0`: help or version was shown, the dry run completed, or the archive was
+  created successfully.
+- `1`: path or filesystem validation failed, a symbolic link was found, the
+  Git identity changed during staging, or staging/archive creation failed.
+- `2`: command-line argument parsing failed.
+
+The script also refuses to run with effective user ID `0` on Linux.
+
+### Appendix
+
+This is a staged filesystem copy, not a transactional repository snapshot.
+The post-copy check detects changes to `HEAD` or the selected tag, but not
+concurrent edits to working-tree files, the index, other refs, or reflogs. Stop
+repository writers while the backup runs when a restorable point-in-time copy
+is required.
+
+The archive includes `.git` when it is contained in the source. Linked
+worktrees and submodules may instead use a `.git` file that refers to metadata
+outside the source; such an archive is not self-contained.
+
+ZIP preserves file bytes and modification times at ZIP precision, but this
+tool does not preserve NTFS ACLs, alternate data streams, creation/access
+times, or a cryptographic manifest. The `v0.0.0` placeholder is also
+indistinguishable in the filename from a real tag with that exact name.
+
 ## build-release-package.ps1
 
 ### Features
 
-- Builds an enriched Git starter kit ZIP package.
-- Copies tracked starter-kit files into a temporary staging directory.
+- Builds an enriched repository ZIP package.
+- Copies tracked repository files into a temporary staging directory.
 - Overlays required coding-agent rule files from `agent-coding-rules`.
-- Writes `_agent-rules-source.json` with requested and resolved rule metadata.
+- Writes `_agent-rules-source.json` with repository, starter-kit, and resolved
+  rule provenance.
+- Writes `_starter-kit-files.json` with managed-file hashes, modes, and upgrade
+  strategies.
 - Verifies required files before and after ZIP creation.
 - Emits GitHub Actions outputs when `GITHUB_OUTPUT` is set.
 
@@ -26,7 +158,11 @@ options:
   -RepositoryRoot PATH        repository root to package
   -OutputDirectory PATH       directory where the ZIP is written
   -PackageName NAME           ZIP file name, with .zip appended if needed
-  -StarterRef REF             starter-kit ref recorded in the manifest
+  -RepositoryRef REF          packaged repository ref
+  -RepositorySlug OWNER/NAME  packaged GitHub repository
+  -StarterKitRepository NAME  upstream starter-kit owner/name
+  -StarterKitRef REF          upstream starter-kit ref
+  -StarterKitCommit SHA       upstream starter-kit commit
   -AgentRulesRepository NAME  owner/name repository for agent rules
   -AgentRulesRef REF          latest or SemVer agent-rules tag
 ```
@@ -37,7 +173,11 @@ options:
 `Release package` GitHub Actions workflow. It packages files reported by
 `git ls-files`, then copies the required coding-agent rule files from a
 resolved `agent-coding-rules` release. The generated ZIP includes the normal
-starter-kit content, the required rule files, and `_agent-rules-source.json`.
+repository content, the required rule files, `_agent-rules-source.json`, and
+the per-file `_starter-kit-files.json` upgrade manifest.
+When a downstream repository already tracks an earlier managed-file manifest,
+the builder excludes that stale copy before generating the new exhaustive
+manifest.
 
 The script resolves `-AgentRulesRef latest` through the GitHub releases API.
 An explicit `-AgentRulesRef` must be a SemVer tag prefixed with `v`.
@@ -49,7 +189,7 @@ Create a local test package in the ignored `.tmp/` directory:
 
 ```powershell
 powershell -NoProfile -File tools\build-release-package.ps1 `
-  -StarterRef local-test `
+  -RepositoryRef local-test `
   -OutputDirectory .tmp\release-package-test `
   -PackageName test-release-package.zip
 ```
@@ -58,8 +198,8 @@ Create a package with a specific agent-rules release:
 
 ```powershell
 powershell -NoProfile -File tools\build-release-package.ps1 `
-  -StarterRef v1.5.0 `
-  -AgentRulesRef v1.36.1 `
+  -RepositoryRef v1.0.0 `
+  -AgentRulesRef v1.40.2 `
   -OutputDirectory dist
 ```
 
@@ -79,11 +219,21 @@ tar -xOf .tmp\release-package-test\test-release-package.zip `
   `dist` under the current working directory. The directory is created when
   needed.
 - `-PackageName NAME`: output file name. When omitted, the script derives
-  `git-starter-kit-{StarterRef}-with-agent-rules.zip`. If the provided name
-  does not end with `.zip`, the extension is appended.
-- `-StarterRef REF`: starter-kit ref recorded in the manifest and used in the
-  default package name. Defaults to `GITHUB_REF_NAME`; if that is empty, the
-  script uses the short current commit SHA.
+  `{RepositoryName}-{RepositoryRef}-with-agent-rules.zip`. If the provided
+  name does not end with `.zip`, the extension is appended.
+- `-RepositoryRef REF`: packaged repository ref recorded in the manifest and
+  used in the default package name. `-StarterRef` remains an alias for
+  compatibility. Defaults to `GITHUB_REF_NAME`; if that is empty, the script
+  uses the short current commit SHA.
+- `-RepositorySlug OWNER/NAME`: packaged GitHub repository. Defaults to
+  `GITHUB_REPOSITORY`; outside Actions, the repository directory name supplies
+  the package name.
+- `-StarterKitRepository OWNER/NAME`: upstream starter-kit repository recorded
+  in the provenance. Defaults to `asphyx0r/git-starter-kit`.
+- `-StarterKitRef REF`: upstream starter-kit ref. Defaults to the packaged
+  repository ref when the packaged repository is the starter kit.
+- `-StarterKitCommit SHA`: upstream starter-kit commit. Defaults to the
+  packaged repository commit when the packaged repository is the starter kit.
 - `-AgentRulesRepository NAME`: GitHub `owner/name` repository used as the
   agent-rules source. Defaults to `asphyx0r/agent-coding-rules`.
 - `-AgentRulesRef REF`: agent-rules reference to package. Defaults to
@@ -114,6 +264,80 @@ when recreating a package from a known rules release.
 Treat failures as release blockers. The script verifies both the resolved
 agent-rules tag and the generated archive so that a broken package is not
 uploaded silently.
+
+## starter-kit-upgrade.py
+
+### Features
+
+- Builds cumulative upgrade ZIPs from exact base and new release packages.
+- Verifies release provenance, managed-file hashes, and archive paths.
+- Produces a per-file plan without modifying the target.
+- Updates only files that still match the proven baseline.
+- Preserves initialization-only, deleted, additional, and locally modified
+  files.
+- Requires a clean Git repository, an external rollback directory, and zero
+  conflicts before application.
+- Bundles the updater and a complete new package as a release toolkit.
+
+### Synopsis
+
+```text
+usage: python tools/starter-kit-upgrade.py [options] COMMAND
+
+options:
+  -h, --help    show help and exit
+  --version     show version and exit
+  --dry-run     validate and print the execution plan without writing
+  -v, --verbose show additional diagnostics
+
+commands:
+  build   build a cumulative upgrade ZIP
+  toolkit bundle the updater and a new full package
+  plan    inspect a target without writing
+  apply   apply a conflict-free upgrade
+```
+
+### Usage/Examples
+
+Build an upgrade from the exact package used for initialization:
+
+```bash
+python tools/starter-kit-upgrade.py build \
+  --base-package git-starter-kit-v2.0.3-with-agent-rules.zip \
+  --new-package git-starter-kit-v2.1.4-with-agent-rules.zip \
+  --output git-starter-kit-v2.0.3-to-v2.1.4-upgrade.zip
+```
+
+Inspect a target without modifying it:
+
+```bash
+python tools/starter-kit-upgrade.py plan \
+  --upgrade-package git-starter-kit-v2.0.3-to-v2.1.4-upgrade.zip \
+  --target ../example-repository
+```
+
+Apply a conflict-free plan while creating a rollback archive outside the
+target:
+
+```bash
+python tools/starter-kit-upgrade.py apply \
+  --upgrade-package git-starter-kit-v2.0.3-to-v2.1.4-upgrade.zip \
+  --target ../example-repository \
+  --backup-directory ../upgrade-backups
+```
+
+### Safety Model
+
+The target `_agent-rules-source.json` must match the base package exactly.
+Older repositories can instead use a reviewed `.starter-kit-adoption.json`
+that records the base archive hash, starter-kit commit, and an ancestor commit
+containing the audited baseline. Adoption proves provenance only; modified or
+missing managed files remain conflicts.
+
+The tool performs no deletion, commit, tag, push, or network operation. An
+upgrade is all-or-nothing: any conflict blocks application. If a write fails,
+files already written in that attempt are restored immediately. The external
+rollback ZIP records every replaced file for operator-controlled recovery.
 
 ## git-init.ps1
 

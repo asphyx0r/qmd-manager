@@ -2,9 +2,8 @@
 
 ## Purpose
 
-This repository can publish an enriched release package for people who want to
-start a new project with the Git starter kit and the coding-agent rules already
-included.
+This repository can publish an enriched QMD Manager release package with the
+coding-agent rules already included.
 
 The agent rules come from
 [agent-coding-rules](https://github.com/asphyx0r/agent-coding-rules), a
@@ -16,22 +15,23 @@ GitHub always adds two source archives to each release:
 - `Source code (zip)`
 - `Source code (tar.gz)`
 
-Those archives contain only the files that are committed in `git-starter-kit`
+Those archives contain only the files that are committed in `qmd-manager`
 at the release tag.
 
-The release package workflow adds one more downloadable file to the same
-release. This extra ZIP overlays a resolved `agent-coding-rules` release on top
-of the starter kit files.
+The release package workflow adds two downloadable files to the same release.
+The enriched ZIP overlays a resolved `agent-coding-rules` release on top of
+the QMD Manager files, and the toolkit bundles the guarded upgrade utility.
 
 ## Generated File
 
-The generated asset is named like this:
+The generated assets are named like this:
 
 ```text
-git-starter-kit-vX.Y.Z-with-agent-rules.zip
+qmd-manager-vX.Y.Z-with-agent-rules.zip
+qmd-manager-vX.Y.Z-upgrade-toolkit.zip
 ```
 
-The ZIP includes the normal starter kit files plus these files from
+The ZIP includes the normal QMD Manager files plus these files from
 `agent-coding-rules`:
 
 - `AGENTS.md`
@@ -41,28 +41,35 @@ The ZIP includes the normal starter kit files plus these files from
 - `LANGUAGE_RULES.md`
 - `RELEASE_RULES.md`
 
-The ZIP also includes `_agent-rules-source.json`. This manifest records where
-the agent rules came from, including the requested reference, resolved release
-tag, commit SHA, and release date.
+The ZIP also includes two provenance files:
+
+- `_agent-rules-source.json` records the packaged repository, upstream starter
+  kit, and agent-rules references and commits.
+- `_starter-kit-files.json` records each managed path, SHA-256 digest, Git
+  mode, and upgrade strategy.
+
+The upgrade toolkit contains the guarded updater and the complete enriched
+package. It can build a cumulative upgrade from the exact earlier package used
+to initialize a target repository.
 
 ## GitHub App Authentication
 
 Resolving agent-rules releases across repositories uses a GitHub App installed
 on `agent-coding-rules` with read-only **Contents** permission. Configure these
-Actions values in `git-starter-kit`:
+Actions values in `qmd-manager`:
 
 - Repository variable `AGENT_RULES_APP_CLIENT_ID`
 - Repository secret `AGENT_RULES_APP_PRIVATE_KEY`
 
 The workflow generates a short-lived installation token and passes it only to
 the package build step. The built-in workflow token remains responsible for
-uploading the generated asset to the `git-starter-kit` release.
+uploading the generated asset to the `qmd-manager` release.
 
 ## Automatic Release Mode
 
 Use this mode for the normal release process.
 
-1. Prepare the release commit in `git-starter-kit`.
+1. Prepare the release commit in `qmd-manager`.
 2. From a clean repository, run `bash tools/repository-audit.sh` locally.
 3. Stop if the local audit fails; do not create a release tag or release.
 4. Create and push the release tag, for example `v1.3.0`.
@@ -79,32 +86,35 @@ release.
 
 The workflow then:
 
-1. Checks out `git-starter-kit` at the published release tag.
+1. Checks out `qmd-manager` at the published release tag.
 2. Resolves `latest` to the latest published full `agent-coding-rules` release.
 3. Verifies that the cloned agent rules checkout matches the resolved tag.
-4. Copies the tracked starter-kit files into a temporary package folder.
+4. Copies the tracked repository files into a temporary package folder.
 5. Copies the six agent rule files into that package folder.
-6. Writes `_agent-rules-source.json` with the requested and resolved
-   agent-rules references.
+6. Writes the provenance and managed-file manifests.
 7. Creates the ZIP file.
-8. Verifies that the required files are present in the ZIP.
-9. Uploads the ZIP to the GitHub release as a release asset.
-10. Promotes the prerelease to the latest stable release in a separate job
+8. Verifies that the required files and managed-file hashes are present.
+9. Extracts the composed package and runs its Markdown and Codespell audits.
+10. Bundles the guarded updater and complete package as an upgrade toolkit.
+11. Uploads both ZIP files to the GitHub release as release assets.
+12. Promotes the prerelease to the latest stable release in a separate job
     that depends on successful packaging.
 
 The release is complete only when this exact `release.published` workflow run
-finishes with `success`, the release is no longer a prerelease, and the
-expected asset and provenance manifest have been verified. A manual workflow
-run does not satisfy this completion gate.
+finishes with `success`, the release is no longer a prerelease, and both
+expected assets and their provenance have been verified. A manual workflow run
+does not satisfy this completion gate.
 
 When the workflow finishes, the GitHub release should show an asset such as:
 
 ```text
-git-starter-kit-v1.3.0-with-agent-rules.zip
+qmd-manager-v1.3.0-with-agent-rules.zip
+qmd-manager-v1.3.0-upgrade-toolkit.zip
 ```
 
-Download this ZIP when you want a ready-to-use starter kit with agent rules
-already included.
+Download the enriched ZIP when you want the tagged QMD Manager release with
+agent rules already included. Download the toolkit only for a reviewed upgrade
+between exact package baselines.
 
 ## Manual Release Mode
 
@@ -120,7 +130,7 @@ Manual runs never promote a prerelease. If an automatic release run failed,
 rerun the failed jobs of that same `release` run after correcting the cause.
 Do not substitute a `workflow_dispatch` run for the automatic completion gate.
 
-1. Open the `git-starter-kit` repository on GitHub.
+1. Open the `qmd-manager` repository on GitHub.
 2. Open the **Actions** tab.
 3. Select the **Release package** workflow.
 4. Click **Run workflow**.
@@ -157,7 +167,7 @@ From the repository root, run:
 
 ```powershell
 powershell -NoProfile -File tools\build-release-package.ps1 `
-  -StarterRef local-test `
+  -RepositoryRef local-test `
   -OutputDirectory .tmp\release-package-test `
   -PackageName test-release-package.zip
 ```
@@ -167,6 +177,7 @@ Inspect the generated ZIP:
 ```powershell
 tar -tf .tmp\release-package-test\test-release-package.zip
 tar -xOf .tmp\release-package-test\test-release-package.zip _agent-rules-source.json
+tar -xOf .tmp\release-package-test\test-release-package.zip _starter-kit-files.json
 ```
 
 The local test creates a ZIP only. It does not upload anything to GitHub.

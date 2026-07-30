@@ -226,9 +226,11 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   credential persistence, uses `latest` automatically for release packages,
   validates manual release tags and agent rules references, and generates a
   read-only GitHub App token scoped to `agent-coding-rules` for the build step.
-  The generated ZIP is uploaded with the built-in workflow token. A dependent
+  The composed ZIP must pass Markdown and Codespell before the full package and
+  upgrade toolkit are uploaded with the built-in workflow token. A dependent
   job promotes automatic prereleases only after successful packaging; manual
-  runs never promote releases. The checkout-free promotion command receives
+  runs never promote releases. Package and toolkit names are derived from the
+  repository being packaged. The checkout-free promotion command receives
   explicit repository context. Shell validation messages are wrapped for YAML
   lint readability.
 
@@ -282,12 +284,14 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 ### `.markdownlint-cli2.yaml`
 
 - Type: `file`
-- Status: `rejected`
-- Goal: Would define repository-level Markdown lint rules.
-- Usage: Not included; the audit workflow uses markdownlint defaults.
-- Notes: The reviewed candidate was project-specific, included a broad proper
-  names list, and rejected valid starter-kit placeholders such as
-  `{GITHUB-USERNAME}`.
+- Status: `required`
+- Goal: Defines the portable Markdown lint baseline shared by generated
+  repositories.
+- Usage: Markdownlint CLI tools load it from the repository root.
+- Notes: Keeps the default rules while allowing 120-character lines outside
+  code blocks, headings, and tables, and limits duplicate-heading checks to
+  sibling sections. Repository-specific proper-name and link-style policies
+  remain local extensions.
 
 ### `.vscode/`
 
@@ -321,8 +325,18 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Status: `required`
 - Goal: Records the resolved sources of the starter kit and coding-agent rules.
 - Usage: Consult when verifying the provenance of imported repository rules.
-- Notes: Keep the requested and resolved references, commits, release metadata,
-  and imported rule-file list aligned with the package that supplied them.
+- Notes: Keep the packaged repository, requested and resolved references,
+  commits, release metadata, and imported rule-file list aligned with the
+  package that supplied them.
+
+### `_starter-kit-files.json`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Records the starter-kit-managed baseline used by cumulative upgrades.
+- Usage: Consult with `_agent-rules-source.json` before planning an alignment.
+- Notes: Stores SHA-256 digests, Git modes, and `replace`, `merge`, or
+  `initialize-only` strategies. The manifest does not include its own digest.
 
 ### `AGENTS.md`
 
@@ -471,6 +485,18 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   supports native and legacy parameters, and may retain partial QMD state when
   a later workflow step fails.
 
+### `scripts/Invoke-QmdBackup.ps1`
+
+- Type: `file`
+- Status: `required`
+- Goal: Creates validated QMD backup archives and transactionally restores
+  them after preparing a rollback archive.
+- Usage: Use `--backup` with an output directory or `--restore` with a source
+  archive; run `--dry-run` before either operation.
+- Notes: Supports index-only, full-data, and offline-model backup modes. It
+  requires PowerShell 7.4, validates the QMD environment and archive manifests,
+  and reserves `--force` for explicit non-interactive replacement approval.
+
 ### `tests/`
 
 - Type: `directory`
@@ -490,6 +516,39 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Notes: Uses built-in assertions and controlled function replacement instead
   of Pester or real prerequisite and QMD mutations.
 
+### `tests/Invoke-QmdBackup.Tests.ps1`
+
+- Type: `file`
+- Status: `required`
+- Goal: Verifies QMD backup and restore parsing, validation, planning,
+  manifests, stable copies, rollback, and mutation guards.
+- Usage: Run with PowerShell 7.4 or newer from any working directory.
+- Notes: Uses built-in assertions and isolated temporary content instead of
+  Pester or the operator's real QMD environment.
+
+### `tests/test_backup_target_directory.py`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Verifies the generic backup tool's CLI, Git provenance, safety checks,
+  staging cleanup, archive contents, and readable ZIP output.
+- Usage: Run
+  `python -B -m unittest discover -s tests -p "test_backup_target_directory.py"`.
+- Notes: Uses only `unittest` and the Python standard library. Git-dependent
+  and symbolic-link cases skip only when the required platform capability is
+  unavailable.
+
+### `tests/test_starter_kit_upgrade.py`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Verifies cumulative package construction, three-state planning,
+  provenance gates, conflict handling, rollback, and archive path safety.
+- Usage: Run
+  `python -B -m unittest discover -s tests -p "test_starter_kit_upgrade.py"`.
+- Notes: Uses temporary Git repositories and ZIP files without changing the
+  working repository.
+
 ### `tools/`
 
 - Type: `directory`
@@ -498,19 +557,38 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Usage: Keep tools generic and tied to documented repository workflows.
 - Notes: Avoid project-specific build, test, or deploy automation here.
 
+### `tools/backup-target-directory.py`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Creates a staged ZIP backup of a directory tree with Git provenance in
+  the archive name.
+- Usage: Run with an existing source and external target directory; use
+  `--dry-run` before creating the archive.
+- Notes: Uses only the Python standard library, includes `.git` and all files
+  present during staging, rejects symbolic links, and accepts an optional
+  staging parent. The archive name contains the captured 12-character `HEAD`
+  and only a SemVer tag that points to that commit. The copy is not
+  transactional and does not preserve every NTFS metadata class or add a
+  cryptographic manifest.
+
 ### `tools/build-release-package.ps1`
 
 - Type: `file`
 - Status: `optional`
 - Goal: Generates a starter-kit release package enriched with agent rules.
 - Usage: Run from the release package workflow or manually with PowerShell.
-- Notes: Copies tracked starter-kit files, resolves `latest` through the GitHub
+- Notes: Copies tracked repository files, resolves `latest` through the GitHub
   release API by default, verifies the cloned tag, overlays tagged
-  `agent-coding-rules` files, writes `_agent-rules-source.json` with requested
-  and resolved refs, validates package file names before writing ZIP files,
-  keeps SemVer validation aligned with CI smoke cases,
-  and verifies required files in the archive. Helper
-  functions use ScriptAnalyzer-compatible names and explicit parameters.
+  `agent-coding-rules` files, writes repository and dependency provenance plus
+  per-file SHA-256 hashes, modes, and upgrade strategies for every tracked
+  file, including dotfiles, validates package file names before writing ZIP
+  files, keeps SemVer validation aligned with CI smoke cases, and verifies
+  exhaustive manifest coverage and repository-owned documentation strategies
+  in the archive. A previously tracked managed-file manifest is excluded before
+  its replacement is generated, so aligned downstream repositories remain
+  packageable. Helper functions use ScriptAnalyzer-compatible names and
+  explicit parameters.
 
 ### `tools/README.md`
 
@@ -522,7 +600,9 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   command-line interfaces, examples, exit status, and best practices.
 - Notes: Keep entries aligned with current tool behavior whenever scripts are
   changed. Documents execution-policy troubleshooting for downloaded
-  `git-init.ps1` copies that PowerShell blocks before launch.
+  `git-init.ps1` copies that PowerShell blocks before launch, and records the
+  backup and cumulative upgrade tools' provenance, consistency, and
+  restoration limits.
 
 ### `tools/repository-audit.sh`
 
@@ -534,13 +614,14 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   mode-specific `markdown`, `spelling`, and `static` arguments.
 - Notes: Defaults to the full profile, with `full` as an explicit alias. Full
   profiles own Markdown lint, spelling, Git whitespace, Bash syntax, ShellCheck
-  for shell scripts and Git hooks, complete PowerShell parsing, QMD Manager
-  tests, SemVer pattern drift checks, smoke behavior, release package manifest,
-  commitlint configuration, and commit message checks for newly introduced
-  commits. The optional `readonly` profile uses installed tools, disables
-  optional Git locks, avoids network access, package installation, tracked-file
-  changes, and mutating smoke tests, and also checks YAML, workflows, and
-  secrets. It may use isolated temporary files for parsing and tests. Full profiles
+  for shell scripts and Git hooks, complete PowerShell parsing, QMD Manager and
+  Python backup and upgrade tests, cross-language SemVer pattern drift checks,
+  smoke behavior, exhaustive release package manifests, commitlint
+  configuration, and commit message checks for newly introduced commits. The
+  optional `readonly` profile uses installed tools, disables optional Git
+  locks, avoids network access, package installation, tracked-file changes,
+  and mutating smoke tests, and also checks YAML, workflows, and secrets. It
+  may use isolated temporary files for parsing and tests. Full profiles
   intentionally resolve the latest
   published `agent-coding-rules` release during release package smoke checks,
   bootstraps pinned Codespell in a temporary Python target, handles WSL-aware
@@ -549,6 +630,18 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   version-pinned package downloads without hash verification, documents the
   npm, PyPI, and GitHub network requirements, and fails when required local
   tools are unavailable instead of silently skipping CI rules.
+
+### `tools/starter-kit-upgrade.py`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Builds, inspects, and applies cumulative starter-kit upgrade packages.
+- Usage: Build from exact base and new full packages, inspect with `plan`, and
+  use `apply` only with an external backup directory.
+- Notes: Validates ZIP paths, package and target provenance, per-file SHA-256
+  hashes, Git cleanliness, and conflicts. It preserves locally owned files,
+  performs no deletion or Git publication, and restores writes after a failed
+  application attempt.
 
 ### `tools/git-init.ps1`
 

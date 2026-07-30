@@ -8,7 +8,7 @@ name: Release package
     inputs:
       tag:
         description: >-
-          Git starter kit release tag whose package asset will be uploaded
+          Repository release tag whose package assets will be uploaded
         required: true
         type: string
       agent_rules_ref:
@@ -95,22 +95,57 @@ jobs:
         id: package
         shell: pwsh
         env:
-          STARTER_REF: ${{ steps.refs.outputs.starter_ref }}
+          REPOSITORY_REF: ${{ steps.refs.outputs.starter_ref }}
           AGENT_RULES_REF: ${{ steps.refs.outputs.agent_rules_ref }}
           GITHUB_TOKEN: ${{ steps.agent-rules-token.outputs.token }}
         run: |
           ./tools/build-release-package.ps1 `
-            -StarterRef $env:STARTER_REF `
+            -RepositoryRef $env:REPOSITORY_REF `
             -AgentRulesRef $env:AGENT_RULES_REF `
             -OutputDirectory $env:RUNNER_TEMP
+
+      - name: Validate composed package
+        shell: bash
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+        run: |
+          validation_root="$RUNNER_TEMP/release-package-validation"
+          mkdir -p "$validation_root"
+          python -m zipfile -e "$PACKAGE_PATH" "$validation_root"
+          cd "$validation_root"
+          NPM_CONFIG_IGNORE_SCRIPTS=true \
+            npx --yes markdownlint-cli2@0.22.1 "**/*.md"
+          python -m pip install \
+            --disable-pip-version-check \
+            --no-input \
+            codespell==2.4.2
+          codespell .
+
+      - name: Build upgrade toolkit
+        id: toolkit
+        shell: bash
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+          REPOSITORY_REF: ${{ steps.refs.outputs.starter_ref }}
+        run: |
+          repository_name="${GITHUB_REPOSITORY##*/}"
+          toolkit_path="$RUNNER_TEMP/${repository_name}-${REPOSITORY_REF}-upgrade-toolkit.zip"
+          python tools/starter-kit-upgrade.py toolkit \
+            --new-package "$PACKAGE_PATH" \
+            --output "$toolkit_path"
+          echo "toolkit_path=$toolkit_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload release asset
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+          TOOLKIT_PATH: ${{ steps.toolkit.outputs.toolkit_path }}
           STARTER_REF: ${{ steps.refs.outputs.starter_ref }}
-        run: gh release upload "$STARTER_REF" "$PACKAGE_PATH"
+        run: >-
+          gh release upload "$STARTER_REF"
+          "$PACKAGE_PATH"
+          "$TOOLKIT_PATH"
 
   promote:
     name: Promote validated release
