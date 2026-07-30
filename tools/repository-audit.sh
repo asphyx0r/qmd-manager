@@ -397,6 +397,7 @@ run_script_smoke() {
   mkdir -p "$bash_invalid_git_target/.git"
   printf 'hello\n' > "$bash_invalid_git_target/README.md"
   if printf 'y\n' | bash tools/git-init.sh \
+    --verbose \
     --path "$bash_invalid_git_target" \
     --tag v1.0.0 >"$bash_invalid_git_output" 2>&1; then
     echo "Bash init accepted invalid .git metadata." >&2
@@ -404,6 +405,11 @@ run_script_smoke() {
   fi
   if ! grep -F "Target contains .git metadata" "$bash_invalid_git_output" >/dev/null; then
     echo "Bash init did not explain invalid .git metadata." >&2
+    exit 1
+  fi
+  if ! grep -F "git -C $bash_invalid_git_target rev-parse --show-toplevel" \
+    "$bash_invalid_git_output" >/dev/null; then
+    echo "Bash verbose init did not display the metadata validation command." >&2
     exit 1
   fi
 
@@ -418,17 +424,78 @@ run_script_smoke() {
     exit 1
   fi
 
+  local bash_verbose_preview_target="$audit_temp/git-init-bash-verbose-preview"
+  local bash_verbose_preview_output="$audit_temp/git-init-bash-verbose-preview.out"
+  local bash_verbose_risky_output
+  local bash_verbose_risky_count
+  mkdir -p "$bash_verbose_preview_target/templates"
+  printf 'hello\n' >"$bash_verbose_preview_target/README.md"
+  printf 'PLACEHOLDER=value\n' >"$bash_verbose_preview_target/templates/.env.template"
+  printf 'y\ny\nn\n' | bash tools/git-init.sh \
+    --verbose \
+    --path "$bash_verbose_preview_target" \
+    --tag v1.0.0 >"$bash_verbose_preview_output" 2>&1
+  if [ -e "$bash_verbose_preview_target/.git" ]; then
+    echo "Bash verbose init created .git before risky-path confirmation." >&2
+    exit 1
+  fi
+  if ! grep -F "git init --bare " "$bash_verbose_preview_output" >/dev/null ||
+    ! grep -F "git --git-dir=" "$bash_verbose_preview_output" >/dev/null; then
+    echo "Bash verbose init did not display the preview Git traces." >&2
+    exit 1
+  fi
+  if ! grep -F "  README.md" "$bash_verbose_preview_output" >/dev/null ||
+    ! grep -F "  templates/.env.template" "$bash_verbose_preview_output" >/dev/null; then
+    echo "Bash verbose init did not preview the expected files." >&2
+    exit 1
+  fi
+  if grep -F -- "--untracked-files=all?? " "$bash_verbose_preview_output" >/dev/null; then
+    echo "Bash verbose init mixed the Git trace with a status entry." >&2
+    exit 1
+  fi
+  bash_verbose_risky_output="$(
+    sed -n '/^Risky paths detected:/,/^Continue with risky paths?/p' \
+      "$bash_verbose_preview_output"
+  )"
+  bash_verbose_risky_count="$(
+    printf '%s\n' "$bash_verbose_risky_output" |
+      awk '/^  / { count++ } END { print count + 0 }'
+  )"
+  if ((bash_verbose_risky_count != 1)) ||
+    [[ "$bash_verbose_risky_output" != *"  templates/.env.template"* ]]; then
+    echo "Bash verbose init reported unexpected risky paths." >&2
+    exit 1
+  fi
+  if [[ "$bash_verbose_risky_output" == *"--git-dir="* ]]; then
+    echo "Bash verbose init reported the Git trace as a risky path." >&2
+    exit 1
+  fi
+
   local bash_target="$audit_temp/git-init-bash-smoke"
+  local bash_output="$audit_temp/git-init-bash-smoke.out"
+  local expected_bash_trace
   mkdir -p "$bash_target"
-  printf 'hello\n' > "$bash_target/README.md"
-  printf 'hello spaces\n' > "$bash_target/notes with spaces.txt"
+  printf 'hello\n' >"$bash_target/README.md"
+  printf 'hello spaces\n' >"$bash_target/notes with spaces.txt"
   printf 'y\ny\n' | bash tools/git-init.sh \
+    --verbose \
     --path "$bash_target" \
-    --tag v1.0.0
+    --tag v1.0.0 >"$bash_output" 2>&1
   if [ -n "$(git -C "$bash_target" status --short)" ]; then
     echo "Bash init smoke repository is not clean." >&2
     exit 1
   fi
+  for expected_bash_trace in \
+    "git init $bash_target" \
+    "git -C $bash_target add --all" \
+    "git -C $bash_target commit -m chore: initialize repository" \
+    "git -C $bash_target branch -M main" \
+    "git -C $bash_target tag -a v1.0.0 -m Initial version/First commit"; do
+    if ! grep -F "$expected_bash_trace" "$bash_output" >/dev/null; then
+      echo "Bash verbose init did not display every Git command." >&2
+      exit 1
+    fi
+  done
 
   local bash_semver_target="$audit_temp/git-init-bash-semver-smoke"
   mkdir -p "$bash_semver_target"
@@ -472,6 +539,52 @@ run_script_smoke() {
     --tag v1.0.0
   if [ -e "$pwsh_cancel_target/.git" ]; then
     echo "PowerShell init created .git before commit confirmation." >&2
+    exit 1
+  fi
+
+  local pwsh_verbose_target="$audit_temp/git-init-pwsh-verbose"
+  local pwsh_verbose_output="$audit_temp/git-init-pwsh-verbose.out"
+  local pwsh_verbose_risky_output
+  local pwsh_verbose_risky_count
+  mkdir -p "$pwsh_verbose_target/templates"
+  printf 'hello\n' >"$pwsh_verbose_target/README.md"
+  printf 'PLACEHOLDER=value\n' >"$pwsh_verbose_target/templates/.env.template"
+  printf 'y\ny\nn\n' | "$pwsh_cmd" -NoProfile -File "$git_init_ps1" \
+    --verbose \
+    --path "$(to_pwsh_path "$pwsh_verbose_target")" \
+    --tag v1.0.0 >"$pwsh_verbose_output" 2>&1
+  if [ -e "$pwsh_verbose_target/.git" ]; then
+    echo "PowerShell verbose init created .git before risky-path confirmation." >&2
+    exit 1
+  fi
+  if ! grep -F "git --git-dir=" "$pwsh_verbose_output" >/dev/null; then
+    echo "PowerShell verbose init did not display the Git status trace." >&2
+    exit 1
+  fi
+  if ! grep -F "  README.md" "$pwsh_verbose_output" >/dev/null ||
+    ! grep -F "  templates/.env.template" "$pwsh_verbose_output" >/dev/null; then
+    echo "PowerShell verbose init did not preview the expected files." >&2
+    exit 1
+  fi
+  if grep -F -- "--untracked-files=all?? " "$pwsh_verbose_output" >/dev/null; then
+    echo "PowerShell verbose init mixed the Git trace with a status entry." >&2
+    exit 1
+  fi
+  pwsh_verbose_risky_output="$(
+    sed -n '/^Risky paths detected:/,/^Continue with risky paths?/p' \
+      "$pwsh_verbose_output"
+  )"
+  pwsh_verbose_risky_count="$(
+    printf '%s\n' "$pwsh_verbose_risky_output" |
+      awk '/^  / { count++ } END { print count + 0 }'
+  )"
+  if ((pwsh_verbose_risky_count != 1)) ||
+    [[ "$pwsh_verbose_risky_output" != *"  templates/.env.template"* ]]; then
+    echo "PowerShell verbose init reported unexpected risky paths." >&2
+    exit 1
+  fi
+  if [[ "$pwsh_verbose_risky_output" == *"--git-dir="* ]]; then
+    echo "PowerShell verbose init reported the Git trace as a risky path." >&2
     exit 1
   fi
 
