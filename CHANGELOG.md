@@ -2,6 +2,12 @@
 
 All notable changes to QMD Manager will be documented in this file.
 
+## v1.1.1
+
+| References | Description | Author(s) |
+| --- | --- | --- |
+| 5be38eb | feat(agents): use canonical rule source | asphyx |
+
 ## v1.1.0
 
 | References | Description | Author(s) |
