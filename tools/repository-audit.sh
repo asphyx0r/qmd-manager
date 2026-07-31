@@ -714,6 +714,15 @@ import json
 import sys
 import zipfile
 
+def canonical_digest(content):
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return "binary", hashlib.sha256(content).hexdigest()
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    canonical = (normalized.rstrip("\n") + "\n").encode("utf-8") if normalized else b""
+    return "text", hashlib.sha256(canonical).hexdigest()
+
 with zipfile.ZipFile(sys.argv[1]) as archive:
     names = {name for name in archive.namelist() if not name.endswith("/")}
     source = json.load(archive.open("_agent-rules-source.json"))
@@ -722,7 +731,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
         raise SystemExit("Unexpected release provenance schema.")
     if source["repository"]["name"] != "qmd-manager":
         raise SystemExit("Unexpected packaged repository name.")
-    if files["schemaVersion"] != 1:
+    if files["schemaVersion"] != 2:
         raise SystemExit("Unexpected managed-file schema.")
     listed = set()
     strategies = {}
@@ -735,7 +744,12 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
         digest = hashlib.sha256(archive.read(path)).hexdigest()
         if digest != entry["sha256"]:
             raise SystemExit(f"Managed file digest mismatch: {path}")
-        if entry["strategy"] not in {"initialize-only", "merge", "replace"}:
+        kind, canonical = canonical_digest(archive.read(path))
+        if kind != entry["contentKind"] or canonical != entry["canonicalSha256"]:
+            raise SystemExit(f"Managed file canonical digest mismatch: {path}")
+        if entry["strategy"] not in {
+            "agent-rules", "initialize-only", "merge", "replace"
+        }:
             raise SystemExit(f"Unexpected upgrade strategy: {path}")
     names.remove("_starter-kit-files.json")
     if names != listed:
@@ -747,8 +761,15 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
             f"Unexpected: {unexpected or '(none)'}."
         )
     expected_strategies = {
-        "docs/release-package.md": "merge",
+        ".github/workflows/agent-rules-update.yml": "replace",
+        "AGENTS.md": "agent-rules",
+        "_agent-rules-source.json": "agent-rules",
+        "docs/SKILLS.md": "initialize-only",
+        "docs/release-package.md": "initialize-only",
+        "docs/repository-files.md": "initialize-only",
         "docs/repository-migration.md": "initialize-only",
+        "tools/README.md": "initialize-only",
+        "tools/repository-audit.sh": "initialize-only",
     }
     for path, strategy in expected_strategies.items():
         if strategies.get(path) != strategy:
@@ -767,6 +788,7 @@ PY
 run_static() {
   require_command git
   require_command shellcheck
+  require_command shfmt
   local node_cmd
   node_cmd="$(resolve_command node node.exe)"
 
@@ -778,6 +800,7 @@ run_static() {
   shellcheck .githooks/pre-commit
   shellcheck .githooks/commit-msg
   shellcheck tools/git-init.sh
+  shfmt -d -i 2 tools/git-init.sh
   check_semver_pattern_drift "$node_cmd"
   check_release_package_portability
   run_powershell_parse
@@ -798,6 +821,7 @@ run_readonly() {
   local markdownlint_cmd
   local node_cmd
   local shellcheck_cmd
+  local shfmt_cmd
   local yamllint_cmd
   actionlint_cmd="$(resolve_command actionlint actionlint.exe)"
   codespell_cmd="$(resolve_command codespell codespell.cmd codespell.exe)"
@@ -808,6 +832,7 @@ run_readonly() {
   )"
   node_cmd="$(resolve_command node node.exe)"
   shellcheck_cmd="$(resolve_command shellcheck shellcheck.exe)"
+  shfmt_cmd="$(resolve_command shfmt shfmt.exe)"
   yamllint_cmd="$(resolve_command yamllint yamllint.exe)"
 
   "$markdownlint_cmd" "**/*.md"
@@ -822,6 +847,7 @@ run_readonly() {
   "$shellcheck_cmd" .githooks/pre-commit
   "$shellcheck_cmd" .githooks/commit-msg
   "$shellcheck_cmd" tools/git-init.sh
+  "$shfmt_cmd" -d -i 2 tools/git-init.sh
   check_semver_pattern_drift "$node_cmd"
   check_release_package_portability
   run_powershell_parse_readonly
