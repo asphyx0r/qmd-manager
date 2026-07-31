@@ -18,17 +18,16 @@ GitHub always adds two source archives to each release:
 Those archives contain only the files that are committed in `qmd-manager`
 at the release tag.
 
-The release package workflow adds two downloadable files to the same release.
+The release package workflow adds one downloadable file to the same release.
 The enriched ZIP overlays a resolved `agent-coding-rules` release on top of
-the QMD Manager files, and the toolkit bundles the guarded upgrade utility.
+the QMD Manager files.
 
 ## Generated File
 
-The generated assets are named like this:
+The generated asset is named like this:
 
 ```text
 qmd-manager-vX.Y.Z-with-agent-rules.zip
-qmd-manager-vX.Y.Z-upgrade-toolkit.zip
 ```
 
 The ZIP includes the normal QMD Manager files plus these files from
@@ -45,12 +44,13 @@ The ZIP also includes two provenance files:
 
 - `_agent-rules-source.json` records the packaged repository, upstream starter
   kit, and agent-rules references and commits.
-- `_starter-kit-files.json` records each managed path, SHA-256 digest, Git
-  mode, and upgrade strategy.
+- `_starter-kit-files.json` records each managed path, raw and canonical
+  SHA-256 digests, content kind, Git mode, and upgrade strategy.
 
-The upgrade toolkit contains the guarded updater and the complete enriched
-package. It can build a cumulative upgrade from the exact earlier package used
-to initialize a target repository.
+Only `git-starter-kit` publishes the cumulative upgrade toolkit. QMD Manager
+publishes its enriched repository package but does not publish a starter
+upgrade toolkit. Its six rule files and `_agent-rules-source.json` are updated
+independently through the repository-owned agent-rules pull-request workflow.
 
 ## GitHub App Authentication
 
@@ -64,6 +64,13 @@ Actions values in `qmd-manager`:
 The workflow generates a short-lived installation token and passes it only to
 the package build step. The built-in workflow token remains responsible for
 uploading the generated asset to the `qmd-manager` release.
+
+The separate `Agent rules update` workflow uses repository variable
+`RULE_SYNC_APP_CLIENT_ID` and secret `RULE_SYNC_APP_PRIVATE_KEY`. Its GitHub App
+must be installed on this repository, `agent-coding-rules`, and
+`coding-agent-toolchain`. The workflow separates target write permissions from
+source read permissions and proposes changes only through
+`automation/agent-rules-update`.
 
 ## Automatic Release Mode
 
@@ -95,26 +102,23 @@ The workflow then:
 7. Creates the ZIP file.
 8. Verifies that the required files and managed-file hashes are present.
 9. Extracts the composed package and runs its Markdown and Codespell audits.
-10. Bundles the guarded updater and complete package as an upgrade toolkit.
-11. Uploads both ZIP files to the GitHub release as release assets.
-12. Promotes the prerelease to the latest stable release in a separate job
+10. Uploads the enriched ZIP to the GitHub release as a release asset.
+11. Promotes the prerelease to the latest stable release in a separate job
     that depends on successful packaging.
 
 The release is complete only when this exact `release.published` workflow run
-finishes with `success`, the release is no longer a prerelease, and both
-expected assets and their provenance have been verified. A manual workflow run
+finishes with `success`, the release is no longer a prerelease, and the
+expected asset and its provenance have been verified. A manual workflow run
 does not satisfy this completion gate.
 
 When the workflow finishes, the GitHub release should show an asset such as:
 
 ```text
 qmd-manager-v1.3.0-with-agent-rules.zip
-qmd-manager-v1.3.0-upgrade-toolkit.zip
 ```
 
 Download the enriched ZIP when you want the tagged QMD Manager release with
-agent rules already included. Download the toolkit only for a reviewed upgrade
-between exact package baselines.
+agent rules already included.
 
 ## Manual Release Mode
 

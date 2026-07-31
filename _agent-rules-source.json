@@ -1,6 +1,5 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-30T21:43:52.7469269Z",
   "repository": {
     "name": "git-starter-kit",
     "slug": "asphyx0r/git-starter-kit",
@@ -14,12 +13,9 @@
   },
   "agentRules": {
     "repository": "https://github.com/asphyx0r/agent-coding-rules",
-    "requestedRef": "latest",
+    "requestedRef": "v1.40.2",
     "ref": "v1.40.2",
     "commit": "d4fa9b1fae97579f61b83f4296ed1e922913d652",
-    "commitDate": "2026-07-21T17:31:56+02:00",
-    "releaseUrl": "https://github.com/asphyx0r/agent-coding-rules/releases/tag/v1.40.2",
-    "releaseDate": "07/21/2026 16:01:10",
     "files": [
       "AGENTS.md",
       "CODING_RULES.md",
@@ -27,6 +23,14 @@
       "DOCUMENTATION_RULES.md",
       "LANGUAGE_RULES.md",
       "RELEASE_RULES.md"
-    ]
+    ],
+    "fileHashes": {
+      "AGENTS.md": "6bade8daa4a712c17eae637cdc761a0edd235f32dd3b8cdfb7f1a867c4c2b711",
+      "CODING_RULES.md": "c550d0a6c60c64b1ed1bb7ce0e0f305225648d261dbbf855a83952d70b84a241",
+      "COMMIT_RULES.md": "9c0b84eaa56c6c46d32db444129c42a1d6c90e35f6bec0e3521a50ef6889df52",
+      "DOCUMENTATION_RULES.md": "a1bd7eb55d64c102285b4bf50207094de2781eca0383624f98c2d9bf64e6425f",
+      "LANGUAGE_RULES.md": "8493bf17910c22ed9a4d7ede25e7f528de1f89efca0c6de8837655854b2744ed",
+      "RELEASE_RULES.md": "8b76e33f4597e0b963e0151fb37c1b171578fc61d49d680d37281c50bc6ce16f"
+    }
   }
 }
