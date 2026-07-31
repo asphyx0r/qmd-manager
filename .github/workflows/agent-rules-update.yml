@@ -21,6 +21,7 @@ env:
 
 jobs:
   update:
+    if: github.repository != 'asphyx0r/git-starter-kit'
     name: Prepare agent rules pull request
     runs-on: ubuntu-24.04
     timeout-minutes: 15
