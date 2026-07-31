@@ -727,7 +727,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     names = {name for name in archive.namelist() if not name.endswith("/")}
     source = json.load(archive.open("_agent-rules-source.json"))
     files = json.load(archive.open("_starter-kit-files.json"))
-    if source["schemaVersion"] != 2:
+    if source["schemaVersion"] != 3:
         raise SystemExit("Unexpected release provenance schema.")
     if source["repository"]["name"] != "qmd-manager":
         raise SystemExit("Unexpected packaged repository name.")

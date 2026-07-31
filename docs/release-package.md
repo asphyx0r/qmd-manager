@@ -19,8 +19,8 @@ Those archives contain only the files that are committed in `qmd-manager`
 at the release tag.
 
 The release package workflow adds one downloadable file to the same release.
-The enriched ZIP overlays a resolved `agent-coding-rules` release on top of
-the QMD Manager files.
+The enriched ZIP contains the canonical rule files already tracked at the
+QMD Manager release tag.
 
 ## Generated File
 
@@ -52,25 +52,26 @@ publishes its enriched repository package but does not publish a starter
 upgrade toolkit. Its six rule files and `_agent-rules-source.json` are updated
 independently through the repository-owned agent-rules pull-request workflow.
 
-## GitHub App Authentication
+## Rule Freshness And Authentication
 
-Resolving agent-rules releases across repositories uses a GitHub App installed
-on `agent-coding-rules` with read-only **Contents** permission. Configure these
-Actions values in `qmd-manager`:
+The package builder resolves the requested public `agent-coding-rules` release
+and compares it with the tracked `_agent-rules-source.json`. It then verifies
+the canonical hash of every tracked rule. A customized file is accepted only
+when provenance schema 3 contains its matching `preservedFiles` record.
+
+No source-repository GitHub App token is required for package generation. The
+built-in workflow token uploads the asset to the current release.
+
+The separate `Agent rules update` workflow uses one GitHub App installed on
+`qmd-manager` with **Contents** and **Pull requests** write access. Configure:
 
 - Repository variable `AGENT_RULES_APP_CLIENT_ID`
 - Repository secret `AGENT_RULES_APP_PRIVATE_KEY`
 
-The workflow generates a short-lived installation token and passes it only to
-the package build step. The built-in workflow token remains responsible for
-uploading the generated asset to the `qmd-manager` release.
-
-The separate `Agent rules update` workflow uses repository variable
-`RULE_SYNC_APP_CLIENT_ID` and secret `RULE_SYNC_APP_PRIVATE_KEY`. Its GitHub App
-must be installed on this repository, `agent-coding-rules`, and
-`coding-agent-toolchain`. The workflow separates target write permissions from
-source read permissions and proposes changes only through
-`automation/agent-rules-update`.
+The public source release supplies both the rules and synchronization engine.
+The workflow preserves customized rule files and proposes safe changes only
+through `automation/agent-rules-update`. Set the repository Actions variable
+`AGENT_RULES_SYNC_ENABLED=false` to suspend synchronization.
 
 ## Automatic Release Mode
 
@@ -95,10 +96,10 @@ The workflow then:
 
 1. Checks out `qmd-manager` at the published release tag.
 2. Resolves `latest` to the latest published full `agent-coding-rules` release.
-3. Verifies that the cloned agent rules checkout matches the resolved tag.
+3. Verifies that tracked provenance and rule hashes match the resolved tag.
 4. Copies the tracked repository files into a temporary package folder.
-5. Copies the six agent rule files into that package folder.
-6. Writes the provenance and managed-file manifests.
+5. Retains the six tracked rule files in that package folder.
+6. Writes validated provenance and the managed-file manifest.
 7. Creates the ZIP file.
 8. Verifies that the required files and managed-file hashes are present.
 9. Extracts the composed package and runs its Markdown and Codespell audits.

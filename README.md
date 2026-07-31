@@ -155,6 +155,10 @@ See [Tools](tools/README.md) for repository-management commands,
 The source versions of the imported starter kit and coding-agent rules are
 recorded in `_agent-rules-source.json`.
 
+The repository-owned `Agent rules update` workflow proposes updates directly
+from `agent-coding-rules` while preserving customized rule files. Set the
+Actions variable `AGENT_RULES_SYNC_ENABLED=false` to suspend synchronization.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing changes. Keep the

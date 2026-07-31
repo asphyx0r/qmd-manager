@@ -214,6 +214,16 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   persistence, and without forwarding the workflow token to checked-out audit
   code.
 
+### `.github/workflows/agent-rules-update.yml`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Proposes canonical rule updates directly from `agent-coding-rules`.
+- Usage: Runs daily or by manual dispatch and opens a repository-local pull
+  request when safe updates exist.
+- Notes: Preserves customized rules. Set `AGENT_RULES_SYNC_ENABLED=false` to
+  suspend synchronization.
+
 ### `.github/workflows/release-package.yml`
 
 - Type: `file`
@@ -323,11 +333,11 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 
 - Type: `file`
 - Status: `required`
-- Goal: Records the resolved sources of the starter kit and coding-agent rules.
-- Usage: Consult when verifying the provenance of imported repository rules.
-- Notes: Keep the packaged repository, requested and resolved references,
-  commits, release metadata, and imported rule-file list aligned with the
-  package that supplied them.
+- Goal: Records repository, starter-kit, and canonical rule provenance.
+- Usage: Updated by the autonomous synchronization workflow and validated by
+  release packaging.
+- Notes: Schema 3 records source hashes and customized rules under
+  `preservedFiles`.
 
 ### `_starter-kit-files.json`
 
