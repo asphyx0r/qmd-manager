@@ -123,6 +123,33 @@ try {
   $HyphenFile = Join-Path $HyphenDirectory 'README.md'
   [System.IO.File]::WriteAllText($SpacedFile, "# Spaced path`n", $script:Utf8NoBom)
   [System.IO.File]::WriteAllText($HyphenFile, "# Hyphen path`n", $script:Utf8NoBom)
+  $NodePath = [string](Get-Command 'node' -CommandType Application).Source
+  $QmdPackageRoot = Join-Path $TestRoot 'qmd-package'
+  $QmdDistDirectory = Join-Path $QmdPackageRoot 'dist'
+  $FastGlobDirectory = Join-Path $QmdPackageRoot 'node_modules\fast-glob'
+  $null = New-Item -ItemType Directory -Path $QmdDistDirectory
+  $null = New-Item -ItemType Directory -Path $FastGlobDirectory
+  [System.IO.File]::WriteAllText(
+    (Join-Path $QmdPackageRoot 'package.json'),
+    '{"type":"module"}',
+    $script:Utf8NoBom
+  )
+  [System.IO.File]::WriteAllText(
+    (Join-Path $QmdDistDirectory 'store.js'),
+    'export function handelize(value) { return value.replaceAll(" ", "-"); }',
+    $script:Utf8NoBom
+  )
+  [System.IO.File]::WriteAllText(
+    (Join-Path $FastGlobDirectory 'index.cjs'),
+    'module.exports = async () => [' +
+      '"Actual-Hyphen/README.md","Blood Angels 500pts/README.md"];',
+    $script:Utf8NoBom
+  )
+  [System.IO.File]::WriteAllText(
+    (Join-Path $FastGlobDirectory 'package.json'),
+    '{"main":"index.cjs"}',
+    $script:Utf8NoBom
+  )
 
   Invoke-TestCase -Name 'log timestamps use the compact local format' -Action {
     $OriginalOutput = [Console]::Out
@@ -247,11 +274,9 @@ try {
   }
 
   Invoke-TestCase -Name 'QMD scanner returns logical and physical paths' -Action {
-    $QmdCommandPath = Get-QmdCommandPath
-    $QmdPackage = Get-QmdPackageContext -QmdCommandPath $QmdCommandPath
     $Dependencies = [pscustomobject]@{
-      NodePath = [string](Get-Command 'node.exe' -CommandType Application).Source
-      QmdPackageRoot = $QmdPackage.PackageRoot
+      NodePath = $NodePath
+      QmdPackageRoot = $QmdPackageRoot
     }
     $PhysicalFiles = @(Get-QmdCollectionPhysicalFiles -Dependencies $Dependencies `
         -CollectionRoot $CollectionRoot -CollectionPattern '**/*.md' `
@@ -269,7 +294,6 @@ try {
   }
 
   Invoke-TestCase -Name 'external UTF-8 output survives an OEM console code page' -Action {
-    $NodePath = [string](Get-Command 'node.exe' -CommandType Application).Source
     $OriginalEncoding = [Console]::OutputEncoding
     try {
       [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding(850)

@@ -27,7 +27,12 @@ $script:LogPath = $null
 $script:VerboseEnabled = $false
 $script:CurrentMode = 'UNKNOWN'
 $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-$script:PathComparer = [System.StringComparer]::OrdinalIgnoreCase
+$script:PathComparer = if ($IsWindows) {
+  [System.StringComparer]::OrdinalIgnoreCase
+}
+else {
+  [System.StringComparer]::Ordinal
+}
 $script:QmdEnvironmentVariableNames = @(
   'QMD_CONFIG_DIR'
   'XDG_CONFIG_HOME'
@@ -2016,10 +2021,21 @@ function Get-RelativePathWithinRoot {
 
   $root = Get-CanonicalExistingPath -LiteralPath $RootPath -PathType Directory
   $target = Get-CanonicalExistingPath -LiteralPath $TargetPath -PathType File
-  $rootPrefix = $root.TrimEnd('\') + '\'
+  $pathComparison = if ($IsWindows) {
+    [System.StringComparison]::OrdinalIgnoreCase
+  }
+  else {
+    [System.StringComparison]::Ordinal
+  }
+  $pathSeparators = [char[]]@(
+    [System.IO.Path]::DirectorySeparatorChar
+    [System.IO.Path]::AltDirectorySeparatorChar
+  )
+  $rootPrefix = $root.TrimEnd($pathSeparators) +
+    [System.IO.Path]::DirectorySeparatorChar
   if (
     -not (Test-PathEqual -Left $target -Right $root) -and
-    -not $target.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+    -not $target.StartsWith($rootPrefix, $pathComparison)
   ) {
     throw (New-QmdException -Message (
       "Indexed path escapes its collection root: '$TargetPath'."
