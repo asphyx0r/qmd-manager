@@ -726,6 +726,18 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Notes: Covers GitHub App authentication, prerelease promotion, the mandatory
   automatic CI gate, generated ZIP contents, local testing, and troubleshooting.
 
+### `docs/upgrade-toolkit.md`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Explains how to build, review, and apply a cumulative starter-kit
+  upgrade.
+- Usage: Follow the documented `build`, `plan`, and `apply` sequence when
+  aligning a repository derived from an earlier starter-kit release.
+- Notes: This universal guide is managed by cumulative upgrades. An unchanged
+  local copy can be updated, while a customized copy is preserved as a
+  conflict instead of being overwritten.
+
 ### `docs/repository-migration.md`
 
 - Type: `file`

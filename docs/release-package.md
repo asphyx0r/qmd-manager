@@ -52,6 +52,9 @@ publishes its enriched repository package but does not publish a starter
 upgrade toolkit. Its six rule files and `_agent-rules-source.json` are updated
 independently through the repository-owned agent-rules pull-request workflow.
 
+For a concise usage procedure in French, see
+[Upgrade toolkit](upgrade-toolkit.md).
+
 ## Rule Freshness And Authentication
 
 The package builder resolves the requested public `agent-coding-rules` release

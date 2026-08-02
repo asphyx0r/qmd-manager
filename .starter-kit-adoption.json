@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
-  "baseArchiveSha256": "3a42cf357c2854d0219381152bbcafb12ced6eaf1b99ec7efe352752d5c80f75",
+  "baseArchiveSha256": "0b4fd44f6fa09c9e628eff03e55f53598b3e59d57e66ee44b3649a1fc8d67915",
   "starterKit": {
     "repository": "https://github.com/asphyx0r/git-starter-kit",
-    "ref": "v2.3.0",
-    "commit": "1e882e0dfd949af7d27065ea3ec31ddbdd9f3715"
+    "ref": "v2.3.2",
+    "commit": "40dc6ef5ab7f74fa969412d3e5a6a41eb0ea1739"
   },
-  "repositoryCommit": "2202c9bb74dc46abedeaac591fec9d2c4e4b6ea2",
+  "repositoryCommit": "05654a64eb51044f5d78fe5ede2887621a13422d",
   "acceptedFiles": {
     ".codespellrc": "1717b76b364ac48b1cbbc32f56c053270b290d36298f9213a43d3259e74206bc"
   }
