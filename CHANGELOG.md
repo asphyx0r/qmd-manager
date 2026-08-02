@@ -2,6 +2,12 @@
 
 All notable changes to QMD Manager will be documented in this file.
 
+## v1.1.2
+
+| References | Description | Author(s) |
+| --- | --- | --- |
+| fafe39b | chore(tools): align with starter v2.3.2 | asphyx |
+
 ## v1.1.1
 
 | References | Description | Author(s) |
