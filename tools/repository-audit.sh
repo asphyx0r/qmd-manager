@@ -158,23 +158,6 @@ function extractSingle(path, pattern, label) {
   return match[1];
 }
 
-function extractWorkflowPattern() {
-  const parts = [];
-  const expression = /^\s*semver_tag_pattern\+?='([^']+)'/gm;
-  const content = readFile(".github/workflows/release-package.yml");
-  let match = expression.exec(content);
-  while (match) {
-    parts.push(match[1]);
-    match = expression.exec(content);
-  }
-
-  if (parts.length === 0) {
-    throw new Error("Unable to extract release workflow SemVer pattern.");
-  }
-
-  return parts.join("");
-}
-
 function extractPythonPattern() {
   const content = readFile("tools/backup-target-directory.py");
   const block = content.match(
@@ -216,16 +199,7 @@ const patterns = new Map([
       "PowerShell init SemVer pattern"
     ),
   ],
-  [
-    "tools/build-release-package.ps1",
-    extractSingle(
-      "tools/build-release-package.ps1",
-      /^\$SemVerTagPattern = "([^"]+)"$/m,
-      "release package SemVer pattern"
-    ),
-  ],
   ["tools/backup-target-directory.py", extractPythonPattern()],
-  [".github/workflows/release-package.yml", extractWorkflowPattern()],
 ]);
 
 const expected = patterns.values().next().value;
@@ -236,133 +210,6 @@ for (const [source, pattern] of patterns) {
   }
 }
 JS
-}
-
-check_release_package_portability() {
-  # shellcheck disable=SC2016
-  if grep -F \
-    'toolkit_path="$RUNNER_TEMP/git-starter-kit-' \
-    .github/workflows/release-package.yml >/dev/null; then
-    echo "Release workflow hard-codes the starter-kit toolkit name." >&2
-    exit 1
-  fi
-
-  # shellcheck disable=SC2016
-  if ! grep -F \
-    'repository_name="${GITHUB_REPOSITORY##*/}"' \
-    .github/workflows/release-package.yml >/dev/null; then
-    echo "Release workflow does not derive the packaged repository name." >&2
-    exit 1
-  fi
-}
-
-check_release_guard_contract() {
-  local reference_path=".agents/skills/git-commit-push-tag/references/git-commit-push-tag.txt"
-  local workflow_path=".github/workflows/release-package.yml"
-
-  if grep -F "token d'installation de la GitHub App" \
-    "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard requires obsolete GitHub App authentication." >&2
-    exit 1
-  fi
-
-  if ! grep -F \
-    "les tags historiques d'un autre type comme des exceptions" \
-    "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not preserve historical tag exceptions." >&2
-    exit 1
-  fi
-
-  if ! grep -F "identifie le plus grand tag SemVer stable" \
-    "$reference_path" >/dev/null ||
-    ! grep -F "présents localement ou sur \`origin\`" \
-      "$reference_path" >/dev/null ||
-    grep -F "Identifie le dernier tag stable au format SemVer" \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not use the highest local or remote SemVer tag." >&2
-    exit 1
-  fi
-
-  if ! grep -F "Il peut y avoir zéro, un ou plusieurs commits." \
-    "$reference_path" >/dev/null ||
-    ! grep -F "aucun nouveau commit n'est nécessaire" \
-      "$reference_path" >/dev/null ||
-    grep -F "aucun changement attendu n'est staged" \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard still requires exactly one new commit." >&2
-    exit 1
-  fi
-
-  if ! grep -F "crée un commit distinct de" \
-    "$reference_path" >/dev/null ||
-    ! grep -F "préparation du changelog en répétant" \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not isolate changelog preparation." >&2
-    exit 1
-  fi
-
-  if ! grep -F 'git fsck --full' "$reference_path" >/dev/null ||
-    ! grep -F 'betterleaks git --staged --redact --no-banner' \
-      "$reference_path" >/dev/null ||
-    ! grep -F 'gitleaks protect --staged --redact --no-banner' \
-      "$reference_path" >/dev/null ||
-    ! grep -F 'commitlint --print-config json' \
-      "$reference_path" >/dev/null ||
-    ! grep -F 'commitlint --edit <fichier-temporaire>' \
-      "$reference_path" >/dev/null ||
-    grep -F 'git fsck --connectivity-only' \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard omits required commit or repository checks." >&2
-    exit 1
-  fi
-
-  if ! grep -F "autant de fois que nécessaire" \
-    "$reference_path" >/dev/null ||
-    ! grep -F "immédiatement avant chaque commit" \
-      "$reference_path" >/dev/null ||
-    grep -F "Examine une seule fois l'état du working tree" \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not recheck repository status." >&2
-    exit 1
-  fi
-
-  if ! grep -F "Supprime chaque \`.gitkeep\` inutile" \
-    "$reference_path" >/dev/null ||
-    ! grep -F "inclus explicitement sa" \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not remove useless .gitkeep files." >&2
-    exit 1
-  fi
-
-  if ! grep -F "n'exige aucun token GitHub App" \
-    "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not require public source access." >&2
-    exit 1
-  fi
-
-  if ! grep -F "contient exactement deux assets nommés" \
-    "$reference_path" >/dev/null ||
-    ! grep -F 'git-starter-kit-<tag>-with-agent-rules.zip' \
-      "$reference_path" >/dev/null ||
-    ! grep -F 'git-starter-kit-<tag>-upgrade-toolkit.zip' \
-      "$reference_path" >/dev/null; then
-    printf '%s\n' "Release guard does not require both release assets." >&2
-    exit 1
-  fi
-
-  if grep -F "actions/create-github-app-token" \
-    "$workflow_path" >/dev/null; then
-    printf '%s\n' "Release workflow uses obsolete GitHub App authentication." >&2
-    exit 1
-  fi
-
-  if ! grep -F "name: Upload release package" \
-    "$workflow_path" >/dev/null ||
-    ! grep -F "name: Upload starter upgrade toolkit" \
-      "$workflow_path" >/dev/null; then
-    printf '%s\n' "Release workflow does not upload both release assets." >&2
-    exit 1
-  fi
 }
 
 run_commitlint() {
@@ -459,6 +306,10 @@ PS
   local powershell_path
   local -a powershell_paths=()
   while IFS= read -r powershell_path; do
+    if [ ! -f "$repository_root/$powershell_path" ]; then
+      continue
+    fi
+
     powershell_paths+=(
       "$(to_pwsh_path "$repository_root/$powershell_path")"
     )
@@ -541,9 +392,7 @@ run_script_smoke() {
 
   local complex_semver_tag="v1.0.0-rc.1+build.1"
   local git_init_ps1
-  local build_release_package_ps1
   git_init_ps1="$(to_pwsh_path "$repository_root/tools/git-init.ps1")"
-  build_release_package_ps1="$(to_pwsh_path "$repository_root/tools/build-release-package.ps1")"
 
   bash tools/git-init.sh --help
   if bash tools/git-init.sh --path "$audit_temp" --tag invalid; then
@@ -781,128 +630,6 @@ run_script_smoke() {
     exit 1
   fi
 
-  local release_output="$audit_temp/release-package-smoke"
-  local latest_package="$release_output/latest-release-package.zip"
-  "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$build_release_package_ps1" \
-    -RepositoryRef local-test \
-    -AgentRulesRef latest \
-    -OutputDirectory "$(to_pwsh_path "$release_output")" \
-    -PackageName latest-release-package.zip
-
-  local manifest_ref
-  manifest_ref="$(
-    "$python_cmd" - "$latest_package" <<'PY'
-import json
-import sys
-import zipfile
-
-archive = zipfile.ZipFile(sys.argv[1])
-manifest = json.load(archive.open("_agent-rules-source.json"))
-print(manifest["agentRules"]["ref"])
-PY
-  )"
-
-  local manifest_requested_ref
-  manifest_requested_ref="$(
-    "$python_cmd" - "$latest_package" <<'PY'
-import json
-import sys
-import zipfile
-
-archive = zipfile.ZipFile(sys.argv[1])
-manifest = json.load(archive.open("_agent-rules-source.json"))
-print(manifest["agentRules"]["requestedRef"])
-PY
-  )"
-
-  if [ "$manifest_requested_ref" != "latest" ]; then
-    echo "Release package did not record requested latest ref." >&2
-    exit 1
-  fi
-
-  local semver_ref_pattern='^v(0|[1-9][0-9]*)\.'
-  semver_ref_pattern+='(0|[1-9][0-9]*)\.'
-  semver_ref_pattern+='(0|[1-9][0-9]*)'
-  if ! [[ "$manifest_ref" =~ $semver_ref_pattern ]]; then
-    echo "Release package latest did not resolve to a SemVer tag." >&2
-    exit 1
-  fi
-
-  "$python_cmd" - "$latest_package" <<'PY'
-import hashlib
-import json
-import sys
-import zipfile
-
-def canonical_digest(content):
-    try:
-        text = content.decode("utf-8")
-    except UnicodeDecodeError:
-        return "binary", hashlib.sha256(content).hexdigest()
-    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-    canonical = (normalized.rstrip("\n") + "\n").encode("utf-8") if normalized else b""
-    return "text", hashlib.sha256(canonical).hexdigest()
-
-with zipfile.ZipFile(sys.argv[1]) as archive:
-    names = {name for name in archive.namelist() if not name.endswith("/")}
-    source = json.load(archive.open("_agent-rules-source.json"))
-    files = json.load(archive.open("_starter-kit-files.json"))
-    if source["schemaVersion"] != 3:
-        raise SystemExit("Unexpected release provenance schema.")
-    if source["repository"]["name"] != "qmd-manager":
-        raise SystemExit("Unexpected packaged repository name.")
-    if files["schemaVersion"] != 2:
-        raise SystemExit("Unexpected managed-file schema.")
-    listed = set()
-    strategies = {}
-    for entry in files["files"]:
-        path = entry["path"]
-        listed.add(path)
-        strategies[path] = entry["strategy"]
-        if path not in names:
-            raise SystemExit(f"Managed file missing from ZIP: {path}")
-        digest = hashlib.sha256(archive.read(path)).hexdigest()
-        if digest != entry["sha256"]:
-            raise SystemExit(f"Managed file digest mismatch: {path}")
-        kind, canonical = canonical_digest(archive.read(path))
-        if kind != entry["contentKind"] or canonical != entry["canonicalSha256"]:
-            raise SystemExit(f"Managed file canonical digest mismatch: {path}")
-        if entry["strategy"] not in {
-            "agent-rules", "initialize-only", "merge", "replace"
-        }:
-            raise SystemExit(f"Unexpected upgrade strategy: {path}")
-    names.remove("_starter-kit-files.json")
-    if names != listed:
-        missing = ", ".join(sorted(names - listed))
-        unexpected = ", ".join(sorted(listed - names))
-        raise SystemExit(
-            "Managed-file coverage mismatch. "
-            f"Missing: {missing or '(none)'}. "
-            f"Unexpected: {unexpected or '(none)'}."
-        )
-    expected_strategies = {
-        ".github/workflows/agent-rules-update.yml": "replace",
-        "AGENTS.md": "agent-rules",
-        "_agent-rules-source.json": "agent-rules",
-        "docs/SKILLS.md": "initialize-only",
-        "docs/release-package.md": "initialize-only",
-        "docs/repository-files.md": "initialize-only",
-        "docs/repository-migration.md": "initialize-only",
-        "tools/README.md": "initialize-only",
-        "tools/repository-audit.sh": "initialize-only",
-    }
-    for path, strategy in expected_strategies.items():
-        if strategies.get(path) != strategy:
-            raise SystemExit(f"Unexpected upgrade strategy for {path}.")
-PY
-
-  if "$pwsh_cmd" -NoProfile -ExecutionPolicy Bypass -File "$build_release_package_ps1" \
-    -RepositoryRef local-test \
-    -AgentRulesRef invalid \
-    -OutputDirectory "$(to_pwsh_path "$release_output")"; then
-    echo "Release package accepted an invalid agent rules ref." >&2
-    exit 1
-  fi
 }
 
 run_static() {
@@ -922,8 +649,6 @@ run_static() {
   shellcheck tools/git-init.sh
   shfmt -d -i 2 tools/git-init.sh
   check_semver_pattern_drift "$node_cmd"
-  check_release_package_portability
-  check_release_guard_contract
   run_powershell_parse
   run_qmd_script_tests
   run_script_smoke
@@ -970,8 +695,6 @@ run_readonly() {
   "$shellcheck_cmd" tools/git-init.sh
   "$shfmt_cmd" -d -i 2 tools/git-init.sh
   check_semver_pattern_drift "$node_cmd"
-  check_release_package_portability
-  check_release_guard_contract
   run_powershell_parse_readonly
   run_qmd_script_tests
   "$node_cmd" --check commitlint.config.cjs

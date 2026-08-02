@@ -1,16 +1,16 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-02T09:32:05.7711329Z",
+  "generatedAt": "2026-08-02T15:11:29.1695371Z",
   "repository": {
     "name": "git-starter-kit",
     "slug": "asphyx0r/git-starter-kit",
-    "ref": "v2.3.2",
-    "commit": "40dc6ef5ab7f74fa969412d3e5a6a41eb0ea1739"
+    "ref": "v2.3.3",
+    "commit": "9081e5fb774734031d07c02adff4c04d19acd71f"
   },
   "starterKit": {
     "repository": "https://github.com/asphyx0r/git-starter-kit",
-    "ref": "v2.3.2",
-    "commit": "40dc6ef5ab7f74fa969412d3e5a6a41eb0ea1739"
+    "ref": "v2.3.3",
+    "commit": "9081e5fb774734031d07c02adff4c04d19acd71f"
   },
   "agentRules": {
     "repository": "https://github.com/asphyx0r/agent-coding-rules",
@@ -20,16 +20,24 @@
   "files": [
     {
       "path": "_agent-rules-source.json",
-      "sha256": "e9f017325e28d95b3b2584848e983e5d3942045efdb565eb5bf06a5650ffa735",
-      "canonicalSha256": "43456d581e1c9332297a82452a66ff18b89bba13962a054466801183291f7af5",
+      "sha256": "bf891718f11fd4f8ccc1b4b68223ef427464f1005b17fd84239d4e068007f1ff",
+      "canonicalSha256": "0a846593484e70815ae4b4b5ad5780a0c340a61d3c94b5b4e3144a1d7bee084d",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "agent-rules"
     },
     {
+      "path": ".agents/skills/git-commit-push-tag/agents/openai.yaml",
+      "sha256": "c8aca1c33d094de2fd6a76b24fbe7ba6b8ea7ccebb35395ba2c665e9873c552c",
+      "canonicalSha256": "c8aca1c33d094de2fd6a76b24fbe7ba6b8ea7ccebb35395ba2c665e9873c552c",
+      "contentKind": "text",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
       "path": ".agents/skills/git-commit-push-tag/references/git-commit-push-tag.txt",
-      "sha256": "e1f7eb745cb6f5215fc78d0b6122cfd8321bda518e11773e9fb8905093886b0a",
-      "canonicalSha256": "e1f7eb745cb6f5215fc78d0b6122cfd8321bda518e11773e9fb8905093886b0a",
+      "sha256": "177ee7e49bc0fc626c91866803d110fff99fdbc418c542ddd68ba767b79b5335",
+      "canonicalSha256": "177ee7e49bc0fc626c91866803d110fff99fdbc418c542ddd68ba767b79b5335",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "replace"
@@ -59,14 +67,6 @@
       "strategy": "replace"
     },
     {
-      "path": "tools/build-release-package.ps1",
-      "sha256": "0cf7e2b6316191a4a85471863a8d96df41c5f77f05100ca8945e7ab36b106d51",
-      "canonicalSha256": "65e6288b93f230a25f0df470eda5b608dfdda818d501a9dd2854d9c87bc4fd9c",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "merge"
-    },
-    {
       "path": "tools/git-init.ps1",
       "sha256": "43c3e58abaaea81f7407336dbba1a0d5bee36bd46d6051abcd7ab577f1c67504",
       "canonicalSha256": "85157a90e52dd1ea727b3a723a1bb19755cb93cfcac433615cf6b40e6fe575fa",
@@ -84,40 +84,24 @@
     },
     {
       "path": "tools/README.md",
-      "sha256": "ce1dd26514c0f2a028472c6edeed53815828ef81ae1016a046753cc4a35f16f4",
-      "canonicalSha256": "ce1dd26514c0f2a028472c6edeed53815828ef81ae1016a046753cc4a35f16f4",
+      "sha256": "d5c294e275fafab5d41149fc5301e691fc604b8b32650425863d04cb3d7fa65e",
+      "canonicalSha256": "d5c294e275fafab5d41149fc5301e691fc604b8b32650425863d04cb3d7fa65e",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
     },
     {
       "path": "tools/repository-audit.sh",
-      "sha256": "3bbc5b942efa5314e0466b6c79f10ae9f3d5fd366ea40ddf21c8f19aac32124a",
-      "canonicalSha256": "3bbc5b942efa5314e0466b6c79f10ae9f3d5fd366ea40ddf21c8f19aac32124a",
+      "sha256": "6415125177ad1f8f48552ed19b1253ce80a9724b11a06ed3ff61e2bf769c46a3",
+      "canonicalSha256": "6415125177ad1f8f48552ed19b1253ce80a9724b11a06ed3ff61e2bf769c46a3",
       "contentKind": "text",
       "mode": "100755",
       "strategy": "initialize-only"
     },
     {
-      "path": "tools/starter-kit-upgrade.py",
-      "sha256": "928f437ecc9c4972af4d73abb1dce2964d906004bae4d31596ee38a4936ed2b4",
-      "canonicalSha256": "928f437ecc9c4972af4d73abb1dce2964d906004bae4d31596ee38a4936ed2b4",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "replace"
-    },
-    {
-      "path": "docs/release-package.md",
-      "sha256": "a91aa4edd38a1c6dc10c9552d81a0dfe953c6e4f98e5cb1317608b57c7ab9ee4",
-      "canonicalSha256": "a91aa4edd38a1c6dc10c9552d81a0dfe953c6e4f98e5cb1317608b57c7ab9ee4",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "initialize-only"
-    },
-    {
       "path": "docs/repository-files.md",
-      "sha256": "e0dae42a7190d51a0ec24741509c8a43d2e199b58d551ec40dd39e61e4072858",
-      "canonicalSha256": "e0dae42a7190d51a0ec24741509c8a43d2e199b58d551ec40dd39e61e4072858",
+      "sha256": "ac8e194dd933326b5f0a242af5a67492f499ed53c7f815277e2a48f524b4847e",
+      "canonicalSha256": "ac8e194dd933326b5f0a242af5a67492f499ed53c7f815277e2a48f524b4847e",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -131,28 +115,20 @@
       "strategy": "initialize-only"
     },
     {
+      "path": ".agents/skills/git-commit-push-tag/SKILL.md",
+      "sha256": "3c15baacbcb287a72e4fb61efa2199fc01f501ba9de14581f588047d131d4e22",
+      "canonicalSha256": "3c15baacbcb287a72e4fb61efa2199fc01f501ba9de14581f588047d131d4e22",
+      "contentKind": "text",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
       "path": "docs/SKILLS.md",
-      "sha256": "c285482685b6ac02e260459bbbcc2a19904508162206fff2dbb07039920806b6",
-      "canonicalSha256": "c285482685b6ac02e260459bbbcc2a19904508162206fff2dbb07039920806b6",
+      "sha256": "372d0c9bf13ca20c809735e51e7b33811665edf82ffd3f150b796074bfd767a3",
+      "canonicalSha256": "372d0c9bf13ca20c809735e51e7b33811665edf82ffd3f150b796074bfd767a3",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
-    },
-    {
-      "path": "docs/upgrade-toolkit.md",
-      "sha256": "f04a4eb8ab90ff330c21205301f0b590b2b5554b855eb87fe1dd82942388ab39",
-      "canonicalSha256": "f04a4eb8ab90ff330c21205301f0b590b2b5554b855eb87fe1dd82942388ab39",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "replace"
-    },
-    {
-      "path": "templates/.env.template",
-      "sha256": "330ef9aa4c4a13c73d88db624e7c2919174ddb36f33c621f50d6924acca5e9fc",
-      "canonicalSha256": "330ef9aa4c4a13c73d88db624e7c2919174ddb36f33c621f50d6924acca5e9fc",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "replace"
     },
     {
       "path": "templates/.gitconfig",
@@ -243,9 +219,9 @@
       "strategy": "replace"
     },
     {
-      "path": ".agents/skills/git-commit-push-tag/agents/openai.yaml",
-      "sha256": "e59b29f97ad74a922ad28c079165331bfe396a20d1c439fdf78679e6c032164a",
-      "canonicalSha256": "e59b29f97ad74a922ad28c079165331bfe396a20d1c439fdf78679e6c032164a",
+      "path": "templates/.env.template",
+      "sha256": "330ef9aa4c4a13c73d88db624e7c2919174ddb36f33c621f50d6924acca5e9fc",
+      "canonicalSha256": "330ef9aa4c4a13c73d88db624e7c2919174ddb36f33c621f50d6924acca5e9fc",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "replace"
@@ -259,14 +235,6 @@
       "strategy": "replace"
     },
     {
-      "path": ".agents/skills/git-commit-push-tag/SKILL.md",
-      "sha256": "672ddbca3f14d36d412ce584e19483dd341a64d7e869cbb3149a03b7f7fa0370",
-      "canonicalSha256": "672ddbca3f14d36d412ce584e19483dd341a64d7e869cbb3149a03b7f7fa0370",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "replace"
-    },
-    {
       "path": "tests/test_backup_target_directory.py",
       "sha256": "a26cf92a90b98cff12562e97d475b861faa4716ff1aba2e7fb543fccaf0e01e7",
       "canonicalSha256": "a26cf92a90b98cff12562e97d475b861faa4716ff1aba2e7fb543fccaf0e01e7",
@@ -275,9 +243,17 @@
       "strategy": "replace"
     },
     {
+      "path": ".github/workflows/agent-rules-update.yml",
+      "sha256": "f46214edb655b1602057cf19d7c43cdd78181a87c083af694b80a05e0e82b283",
+      "canonicalSha256": "f46214edb655b1602057cf19d7c43cdd78181a87c083af694b80a05e0e82b283",
+      "contentKind": "text",
+      "mode": "100644",
+      "strategy": "replace"
+    },
+    {
       "path": ".codespellrc",
-      "sha256": "67b737d34ff2faee3534c79674a2e1eff79c2ee12757fa0baae6de711e9190cc",
-      "canonicalSha256": "67b737d34ff2faee3534c79674a2e1eff79c2ee12757fa0baae6de711e9190cc",
+      "sha256": "4ee81226707315324d09837db2952d733cdfcac7718175f8c7bc62262eab8404",
+      "canonicalSha256": "4ee81226707315324d09837db2952d733cdfcac7718175f8c7bc62262eab8404",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "merge"
@@ -332,8 +308,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "4d09a455dc32232105c2bb9469a9d48cc6a26070d9dba93201f9ec87813c0005",
-      "canonicalSha256": "4d09a455dc32232105c2bb9469a9d48cc6a26070d9dba93201f9ec87813c0005",
+      "sha256": "1ae62d70212fa6ab50f939663aedc57db290fb815c1c6c44d65030f7056afe81",
+      "canonicalSha256": "1ae62d70212fa6ab50f939663aedc57db290fb815c1c6c44d65030f7056afe81",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -363,20 +339,20 @@
       "strategy": "agent-rules"
     },
     {
+      "path": ".github/workflows/repository-audit.yml",
+      "sha256": "57cdac8564bbab74348d48cfbd451fc9678b9f29421226318f2ebc445bcb655e",
+      "canonicalSha256": "57cdac8564bbab74348d48cfbd451fc9678b9f29421226318f2ebc445bcb655e",
+      "contentKind": "text",
+      "mode": "100644",
+      "strategy": "merge"
+    },
+    {
       "path": "commitlint.config.cjs",
       "sha256": "d03eb3b1c71e66da721e24e68f22f96db3184cb91f7d862dc7f0d17855c81c38",
       "canonicalSha256": "d03eb3b1c71e66da721e24e68f22f96db3184cb91f7d862dc7f0d17855c81c38",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "replace"
-    },
-    {
-      "path": "CONTRIBUTING.md",
-      "sha256": "ed1844291acb804c9bad9e58772c55b0adc87e183817c94a263492c2f817f50e",
-      "canonicalSha256": "ed1844291acb804c9bad9e58772c55b0adc87e183817c94a263492c2f817f50e",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "initialize-only"
     },
     {
       "path": "DOCUMENTATION_RULES.md",
@@ -404,8 +380,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "14ed68d70976e9b88178b653d40d43bb5dc929f141fc78a6d958b9810a67be3b",
-      "canonicalSha256": "14ed68d70976e9b88178b653d40d43bb5dc929f141fc78a6d958b9810a67be3b",
+      "sha256": "7daf5264dafd251063ba287cd5d84fc08d15676cd7960e1ab7d99b99f529eea6",
+      "canonicalSha256": "7daf5264dafd251063ba287cd5d84fc08d15676cd7960e1ab7d99b99f529eea6",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -467,36 +443,12 @@
       "strategy": "replace"
     },
     {
-      "path": ".github/workflows/agent-rules-update.yml",
-      "sha256": "f46214edb655b1602057cf19d7c43cdd78181a87c083af694b80a05e0e82b283",
-      "canonicalSha256": "f46214edb655b1602057cf19d7c43cdd78181a87c083af694b80a05e0e82b283",
+      "path": "CONTRIBUTING.md",
+      "sha256": "ed1844291acb804c9bad9e58772c55b0adc87e183817c94a263492c2f817f50e",
+      "canonicalSha256": "ed1844291acb804c9bad9e58772c55b0adc87e183817c94a263492c2f817f50e",
       "contentKind": "text",
       "mode": "100644",
-      "strategy": "replace"
-    },
-    {
-      "path": ".github/workflows/release-package.yml",
-      "sha256": "7bea646a37245d94477bbea955b0d6ffb15a036ecff8dc27d895770e90eba747",
-      "canonicalSha256": "7bea646a37245d94477bbea955b0d6ffb15a036ecff8dc27d895770e90eba747",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "merge"
-    },
-    {
-      "path": ".github/workflows/repository-audit.yml",
-      "sha256": "57cdac8564bbab74348d48cfbd451fc9678b9f29421226318f2ebc445bcb655e",
-      "canonicalSha256": "57cdac8564bbab74348d48cfbd451fc9678b9f29421226318f2ebc445bcb655e",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "merge"
-    },
-    {
-      "path": "tests/test_starter_kit_upgrade.py",
-      "sha256": "9613ad932d2e54d47f36f3508641eda721adf6b3393bcc16ad83ade9a48606c0",
-      "canonicalSha256": "9613ad932d2e54d47f36f3508641eda721adf6b3393bcc16ad83ade9a48606c0",
-      "contentKind": "text",
-      "mode": "100644",
-      "strategy": "replace"
+      "strategy": "initialize-only"
     },
     {
       "path": ".vscode/settings.json",

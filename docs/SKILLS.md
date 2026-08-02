@@ -9,17 +9,16 @@ is the authoritative source for its behavior and instructions.
 | Skill | Purpose | Path |
 | --- | --- | --- |
 <!-- markdownlint-disable-next-line MD013 -->
-| **Git Commit, Push, Tag, and CI-Gated GitHub Release** | Runs the canonical guarded SemVer analysis, validated commit, tag, atomic push, synchronization checks, and optional template-based, CI-gated GitHub Release workflow. | `.agents/skills/git-commit-push-tag` |
+| **Git Commit, Push, Tag, and GitHub Release** | Runs guarded SemVer analysis, commit, tag, atomic push, synchronization checks, and an optional template-based GitHub Release. | `.agents/skills/git-commit-push-tag` |
 
-## Git Commit, Push, Tag, and CI-Gated GitHub Release
+## Git Commit, Push, Tag, and GitHub Release
 
 - **Slug:** `git-commit-push-tag`
 - **Path:** `.agents/skills/git-commit-push-tag`
 - **Invocation:** `$git-commit-push-tag`
 
 Runs the canonical guarded SemVer analysis, validated commit, tag, atomic push,
-synchronization checks, and optional template-based, CI-gated GitHub Release
-workflow.
+synchronization checks, and optional template-based GitHub Release workflow.
 
 ### When to use
 
@@ -38,15 +37,15 @@ workflow.
 - Analyze the next SemVer bump before mutation.
 - Perform an explicitly validated commit, tag, atomic push, and synchronization
   checks.
-- Complete a requested, template-based GitHub Release only after its automatic
-  Release package CI succeeds.
+- Complete a requested, template-based GitHub Release after every applicable
+  repository-specific check succeeds.
 
 ### Usage examples
 
 ```text
 Use $git-commit-push-tag to analyze the next SemVer bump.
 Mutate only with an explicit BUMP, and complete a requested GitHub Release
-only after its automatic Release package CI succeeds.
+only after every applicable repository-specific check succeeds.
 ```
 
 ### Contents
