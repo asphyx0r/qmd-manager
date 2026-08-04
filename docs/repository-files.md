@@ -88,19 +88,20 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 
 - Type: `file`
 - Status: `optional`
-- Goal: Defines canonical bump analysis, commit, tag, atomic push,
-  synchronization, and generic GitHub Release behavior.
+- Goal: Defines canonical bump analysis, exact-file commit validation, remote
+  audit preflight, tag, atomic final push, synchronization, and generic GitHub
+  Release behavior.
 - Usage: Read completely before the skill takes any action or runs Git.
 - Notes: Preserve this file as the skill's sole behavioral source of truth.
 
 ### `.betterleaks.toml`
 
 - Type: `file`
-- Status: `duplicate`
-- Goal: Would define Betterleaks-specific secret scanning rules.
-- Usage: Not included; Betterleaks can read the shared `.gitleaks.toml` path
-  if secret scanning later needs configuration.
-- Notes: Keep one scanner configuration owner to avoid drift.
+- Status: `required`
+- Goal: Defines strict Betterleaks secret scanning rules while retaining the
+  rules built into the installed scanner.
+- Usage: Betterleaks loads it automatically from the repository root.
+- Notes: Keep it byte-for-byte identical to `.gitleaks.toml`.
 
 ### `.codespellrc`
 
@@ -132,13 +133,12 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 ### `.gitleaks.toml`
 
 - Type: `file`
-- Status: `deferred`
-- Goal: Would define shared secret scanning rules for Gitleaks-compatible
-  tools.
-- Usage: Not included; default Gitleaks and Betterleaks scans currently pass
-  without repository-specific configuration.
-- Notes: Add only with an approved secret scanning audit gate and only if
-  default rules need stable generic overrides or allowlists.
+- Status: `required`
+- Goal: Defines strict Gitleaks rules for credential assignments,
+  authorization headers, and credentials in service URIs.
+- Usage: Gitleaks loads it automatically from the repository root.
+- Notes: Keep it byte-for-byte identical to `.betterleaks.toml`; inherited
+  default rules remain enabled.
 
 ### `.github/`
 
@@ -201,13 +201,17 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 
 - Type: `file`
 - Status: `optional`
-- Goal: Runs a minimal repository documentation audit on GitHub Actions.
-- Usage: Executes on pushes, pull requests, and manual dispatch.
+- Goal: Runs the shared repository audit and publishes one aggregate required
+  check on GitHub Actions.
+- Usage: Executes on pushes, pull requests, published releases, and manual
+  dispatch.
 - Notes: The workflow uses a pinned runner and a checkout action pinned by
   SHA for `actions/checkout@v7.0.0`. It delegates Markdown, spelling,
   static, smoke, and configuration rules to `tools/repository-audit.sh` so
-  local and CI audits share the same
-  source of truth. Tool downloads are version-pinned but not hash-verified;
+  local and CI audits share the same source of truth. Push and release runs
+  validate the complete applicable commit range, and one aggregation job must
+  succeed after every required audit job. Tool downloads are version-pinned
+  but not hash-verified;
   this is an accepted lightweight CI tradeoff for this repository with
   read-only repository audit permissions, disabled checkout credential
   persistence, and without forwarding the workflow token to checked-out audit
@@ -218,10 +222,10 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Type: `file`
 - Status: `optional`
 - Goal: Proposes canonical rule updates directly from `agent-coding-rules`.
-- Usage: Runs daily or by manual dispatch and opens a repository-local pull
-  request when safe updates exist.
+- Usage: Runs daily, on every published release, or by manual dispatch and
+  opens a repository-local pull request when safe updates exist.
 - Notes: Preserves customized rules. Set `AGENT_RULES_SYNC_ENABLED=false` to
-  suspend synchronization.
+  suspend scheduled and manual runs; published releases always run the job.
 
 ### `.githooks/`
 
@@ -324,8 +328,9 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Status: `optional`
 - Goal: Records the verified starter-kit package adopted by QMD Manager.
 - Usage: Review with `_starter-kit-files.json` before aligning managed files.
-- Notes: Stores the source archive hash, exact starter-kit ref and commit,
-  audited repository baseline, and accepted local merge-file digests.
+- Notes: Stores the current archive hash and starter-kit ref, the audited
+  repository baseline, accepted merge-file digests, and the immutable original
+  starter-kit source.
 
 ### `_starter-kit-files.json`
 
@@ -333,8 +338,19 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Status: `optional`
 - Goal: Records the starter-kit-managed baseline used for audited alignment.
 - Usage: Consult with `_agent-rules-source.json` before planning an alignment.
-- Notes: Stores SHA-256 digests, Git modes, and `replace`, `merge`, or
-  `initialize-only` strategies. The manifest does not include its own digest.
+- Notes: Schema 3 stores SHA-256 digests, Git modes, and `agent-rules`,
+  `replace`, `merge`, `initialize-only`, or `starter-kit-state` strategies.
+  The manifest does not include its own digest.
+
+### `starter-kit-manifest.json`
+
+- Type: `file`
+- Status: `required`
+- Goal: Records the original and current published starter-kit core baselines.
+- Usage: Inspect `source` for the initial package and `current` for the latest
+  cumulative core upgrade.
+- Notes: Preserves `source=v2.3.3` while recording `current=v2.4.0`, with the
+  strategy, mode, and digest of every managed core file.
 
 ### `AGENTS.md`
 
@@ -393,8 +409,8 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Status: `required`
 - Goal: Tracks notable changes to QMD Manager.
 - Usage: Add release entries only after corresponding Git tags exist.
-- Notes: The current pre-release file intentionally contains no `Unreleased`
-  section or version heading. Generic placeholders belong in
+- Notes: Contains one three-column commit table per existing release tag and no
+  `Unreleased` section. Generic placeholders belong in
   `templates/CHANGELOG.md`.
 
 ### `CODE_OF_CONDUCT.md`
@@ -536,6 +552,27 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   and symbolic-link cases skip only when the required platform capability is
   unavailable.
 
+### `tests/test_commit_message_validation.sh`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Verifies exact commit-message validation, forced hooks, and audit
+  ranges for branches and tags.
+- Usage: Run with Git Bash after the required Git, Node.js, npm, and Commitlint
+  dependencies are available.
+- Notes: Creates only disposable Git repositories outside the maintained
+  working tree.
+
+### `tests/test_verify_repository_audit_runs.py`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Verifies exact GitHub Actions run selection for every required ref.
+- Usage: Run
+  `python -B -m unittest discover -s tests -p "test_verify_repository_audit_runs.py"`.
+- Notes: Uses in-memory fixtures, validates help, version, and dry-run
+  behavior, and performs no GitHub query.
+
 ### `tools/`
 
 - Type: `directory`
@@ -569,8 +606,8 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   command-line interfaces, examples, exit status, and best practices.
 - Notes: Keep entries aligned with current tool behavior whenever scripts are
   changed. Documents execution-policy troubleshooting for downloaded
-  `git-init.ps1` copies that PowerShell blocks before launch, and records the
-  backup tool's provenance, consistency, and restoration limits.
+  `git-init.ps1` copies, the backup tool's provenance and restoration limits,
+  exact commit validation, and repository-audit run verification.
 
 ### `tools/repository-audit.sh`
 
@@ -583,9 +620,9 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Notes: Defaults to the full profile, with `full` as an explicit alias. Full
   profiles own Markdown lint, spelling, Git whitespace, Bash syntax, ShellCheck
   for shell scripts and Git hooks, complete PowerShell parsing, QMD Manager and
-  Python backup tests, cross-language SemVer pattern drift checks, smoke
-  behavior, commitlint
-  configuration, and commit message checks for newly introduced commits. The
+  Python tests, cross-language SemVer pattern drift checks, workflow and secret
+  scanner contracts, smoke behavior, Commitlint configuration, exact message
+  fixtures, and commit checks for the complete applicable range. The
   optional `readonly` profile uses installed tools, disables optional Git
   locks, avoids network access, package installation, tracked-file changes,
   and mutating smoke tests, and also checks YAML, workflows, and secrets. It
@@ -596,6 +633,17 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   version-pinned package downloads without hash verification, document the
   npm and PyPI network requirements, and fail when required local
   tools are unavailable instead of silently skipping CI rules.
+
+### `tools/verify-repository-audit-runs.py`
+
+- Type: `file`
+- Status: `optional`
+- Goal: Waits for the exact successful GitHub Actions push runs required for
+  guarded repository publication.
+- Usage: Supply the repository, workflow ID, exact SHA, UTC lower bound, and
+  one `--ref` per expected branch or tag; use `--dry-run` first.
+- Notes: Uses authenticated read-only `gh api` queries and rejects missing,
+  ambiguous, unrelated, or unsuccessful runs.
 
 ### `tools/git-init.ps1`
 
@@ -613,9 +661,10 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   credential, direnv, and artifact paths, refuses
   existing target commits, writes prompts without polluting confirmation
   return values, reads confirmation answers from standard input for
-  deterministic CI smoke tests, warns on runtime storage paths, creates the
-  first Conventional Commit on `main`, tags it, and only pushes when
-  `--remote` is provided.
+  deterministic CI smoke tests, warns on runtime storage paths, validates one
+  UTF-8 message file with Commitlint and forced repository hooks, preserves the
+  exact committed message, tags it, and only pushes when `--remote` is
+  provided.
 
 ### `tools/git-init.sh`
 
@@ -630,7 +679,8 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   previews committable files from Git porcelain status without creating target
   Git metadata, explains invalid preexisting `.git` metadata, warns on risky
   credential, direnv, artifact, and runtime storage paths, refuses existing
-  target commits, creates the first Conventional Commit on `main`, tags it,
+  target commits, validates one exact message file with Commitlint and forced
+  repository hooks, creates the first Conventional Commit on `main`, tags it,
   and only pushes when `--remote` is provided.
 
 ### `docs/`

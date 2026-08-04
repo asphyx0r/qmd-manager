@@ -16,13 +16,14 @@ and creating a Markdown knowledge collection with scoped vector embeddings.
 - Creates a QMD collection for the `**/*.md` files under a selected directory.
 - Adds a root context to the collection.
 - Generates embeddings only for the new collection.
+- Creates validated QMD backup archives and transactionally restores them.
 - Provides PowerShell-native and GNU-compatible parameters, previews, and
   verbose diagnostics.
 
 ## Requirements
 
 - Windows 11 client edition.
-- PowerShell 7.x Core.
+- PowerShell 7.x Core; backup and restore require PowerShell 7.4 or later.
 - An existing readable directory containing at least one `*.md` file.
 - Node.js 22.22.2 or later.
 - npm 11.16.0 or later and earlier than 13.0.0.
@@ -123,11 +124,40 @@ They do not install or update software and do not modify QMD data. When
 Node.js would change, the preview reports that npm and QMD will be re-detected
 instead of predicting their actions from stale state.
 
+## Backup and restore
+
+Preview an index-only backup before creating an archive:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\Invoke-QmdBackup.ps1 `
+  --backup `
+  --output-directory 'D:\Backups\QMD' `
+  --dry-run
+```
+
+Use `--include-datas` to include files referenced by the QMD indexes, or
+`--include-model` to include both indexed files and local QMD models for an
+offline-capable archive. The latter option implies `--include-datas`.
+
+Preview a transactional restore before replacing any local QMD state:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\scripts\Invoke-QmdBackup.ps1 `
+  --restore `
+  --source-file 'D:\Backups\QMD\qmd-backup.zip' `
+  --output-directory 'D:\Backups\QMD\restore-work' `
+  --dry-run
+```
+
+A real restore validates the archive and prepares a rollback archive before
+replacement. Avoid `--force` until the complete plan has been reviewed; it
+approves all replacements without further interaction.
+
 ## Repository maintenance
 
 This project retains the repository audit, Git initialization helpers, hooks,
-templates, coding-agent rules, and release packaging support from the Git
-starter kit.
+templates, and coding-agent rules from the Git starter kit. Release-package
+producers remain exclusive to the canonical `git-starter-kit` repository.
 
 After Git metadata has been created, run the read-only audit with installed
 tools:
@@ -157,7 +187,8 @@ recorded in `_agent-rules-source.json`.
 
 The repository-owned `Agent rules update` workflow proposes updates directly
 from `agent-coding-rules` while preserving customized rule files. Set the
-Actions variable `AGENT_RULES_SYNC_ENABLED=false` to suspend synchronization.
+Actions variable `AGENT_RULES_SYNC_ENABLED=false` to suspend scheduled and
+manual synchronization; published releases always run the synchronization.
 
 ## Contributing
 

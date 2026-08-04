@@ -2169,7 +2169,7 @@ function Resolve-QmdIndexedFile {
     ))
   }
 
-  $matches = @(
+  $physicalFileMatches = @(
     $PhysicalFiles | Where-Object {
       [string]::Equals(
         [string]$_.logicalPath,
@@ -2178,14 +2178,14 @@ function Resolve-QmdIndexedFile {
       )
     }
   )
-  if ($matches.Count -eq 0) {
+  if ($physicalFileMatches.Count -eq 0) {
     throw (New-QmdException -Message (
       "Active QMD document has no matching physical file after QMD path normalization: " +
       "collection '$($Document.collectionName)', logical path '$relativePath'."
     ))
   }
-  if ($matches.Count -gt 1) {
-    $candidates = @($matches.physicalRelativePath | Sort-Object) -join "', '"
+  if ($physicalFileMatches.Count -gt 1) {
+    $candidates = @($physicalFileMatches.physicalRelativePath | Sort-Object) -join "', '"
     throw (New-QmdException -Message (
       "Active QMD document path is ambiguous after QMD path normalization: " +
       "collection '$($Document.collectionName)', logical path '$relativePath', " +
@@ -2193,7 +2193,7 @@ function Resolve-QmdIndexedFile {
     ))
   }
 
-  $physicalRelativePath = [string]$matches[0].physicalRelativePath
+  $physicalRelativePath = [string]$physicalFileMatches[0].physicalRelativePath
   if (
     [string]::IsNullOrWhiteSpace($physicalRelativePath) -or
     [System.IO.Path]::IsPathFullyQualified($physicalRelativePath)
@@ -2299,18 +2299,18 @@ function Get-QmdModelFiles {
     $reference = [string]$required.Reference
     if ($reference.StartsWith('hf:', [System.StringComparison]::OrdinalIgnoreCase)) {
       $fileName = ($reference -split '/')[-1]
-      $matches = @($cacheFiles | Where-Object {
+      $cacheFileMatches = @($cacheFiles | Where-Object {
           [System.IO.Path]::GetFileName($_.SourcePath).Contains(
             $fileName,
             [System.StringComparison]::OrdinalIgnoreCase
           )
         })
-      if ($matches.Count -eq 0) {
+      if ($cacheFileMatches.Count -eq 0) {
         throw (New-QmdException -Message (
           "Required Hugging Face model is not available offline: '$reference'."
         ))
       }
-      foreach ($match in $matches) {
+      foreach ($match in $cacheFileMatches) {
         $match.References.Add([ordered]@{
             indexId = $required.IndexId
             role = $required.Role
@@ -2695,7 +2695,7 @@ function New-QmdZipFromStaging {
           [System.IO.Compression.CompressionLevel]::Optimal
         )
         $entry.LastWriteTime = Get-QmdZipTimestamp -LastWriteTimeUtc $file.LastWriteTimeUtc
-        $input = [System.IO.File]::Open(
+        $inputStream = [System.IO.File]::Open(
           $file.FullName,
           [System.IO.FileMode]::Open,
           [System.IO.FileAccess]::Read,
@@ -2703,11 +2703,11 @@ function New-QmdZipFromStaging {
         )
         $output = $entry.Open()
         try {
-          $input.CopyTo($output)
+          $inputStream.CopyTo($output)
         }
         finally {
           $output.Dispose()
-          $input.Dispose()
+          $inputStream.Dispose()
         }
       }
     }
@@ -2981,7 +2981,7 @@ function Expand-QmdBackupArchive {
           continue
         }
         $null = [System.IO.Directory]::CreateDirectory((Split-Path -Parent $target))
-        $input = $entry.Open()
+        $inputStream = $entry.Open()
         $output = [System.IO.File]::Open(
           $target,
           [System.IO.FileMode]::CreateNew,
@@ -2989,11 +2989,11 @@ function Expand-QmdBackupArchive {
           [System.IO.FileShare]::None
         )
         try {
-          $input.CopyTo($output)
+          $inputStream.CopyTo($output)
         }
         finally {
           $output.Dispose()
-          $input.Dispose()
+          $inputStream.Dispose()
         }
       }
     }

@@ -143,6 +143,7 @@ indistinguishable in the filename from a real tag with that exact name.
 - Previews committable files before creating target Git metadata.
 - Requires explicit confirmation before initialization and commit.
 - Warns before committing risky credential, archive, cache, or runtime paths.
+- Validates the exact initial message with Commitlint and the repository hook.
 - Creates the first Conventional Commit on `main`.
 - Creates an annotated SemVer tag and optionally pushes to `origin`.
 
@@ -168,9 +169,12 @@ exist and contain files. If `.git` metadata already exists, it must be readable
 and the repository must not already have commits.
 
 The script asks for confirmation, previews files Git can commit, asks for a
-second confirmation, warns on risky paths when needed, then creates the initial
-commit, renames the branch to `main`, and creates an annotated tag. It pushes
-only when `--remote` is provided.
+second confirmation, and warns on risky paths when needed. Before committing,
+it writes the exact message to a temporary UTF-8 file without a byte-order
+mark, validates that file with Commitlint, and forces the repository
+`commit-msg` hook. It verifies the recorded message, removes the temporary
+file, renames the branch to `main`, and creates an annotated tag. It pushes only
+when `--remote` is provided.
 
 ### Usage/Examples
 
@@ -270,6 +274,7 @@ Run from PowerShell when working primarily on Windows paths. Use
 - Previews committable files before creating target Git metadata.
 - Requires explicit confirmation before initialization and commit.
 - Warns before committing risky credential, archive, cache, or runtime paths.
+- Validates the exact initial message with Commitlint and the repository hook.
 - Creates the first Conventional Commit on `main`.
 - Creates an annotated SemVer tag and optionally pushes to `origin`.
 
@@ -295,9 +300,11 @@ target directory, and readable `.git` metadata if `.git` already exists. The
 target repository must not already have commits.
 
 The script asks for confirmation, previews files Git can commit, asks for a
-second confirmation, warns on risky paths when needed, then creates the initial
-commit, renames the branch to `main`, and creates an annotated tag. It pushes
-only when `--remote` is provided.
+second confirmation, and warns on risky paths when needed. Before committing,
+it writes the exact message to a temporary UTF-8 file, validates that file with
+Commitlint, and forces the repository `commit-msg` hook. It verifies the
+recorded message, removes the temporary file, renames the branch to `main`, and
+creates an annotated tag. It pushes only when `--remote` is provided.
 
 ### Usage/Examples
 
@@ -363,9 +370,12 @@ when the target path is a native Windows path.
 - Defaults to the full audit profile.
 - Supports an optional read-only profile and focused CI audit modes.
 - Checks Markdown, spelling, whitespace, shell scripts, PowerShell parsing,
-  YAML, workflows, secrets, SemVer pattern drift, and commit messages.
+  YAML, workflow contracts, scanner behavior, SemVer pattern drift, and commit
+  messages over the complete introduced-commit range.
 - Parses every tracked or untracked non-ignored PowerShell file and runs the
-  dependency-free `Initialize-QmdCollection` test suite.
+  dependency-free backup and `Initialize-QmdCollection` test suites.
+- Exercises the canonical valid and invalid commit-message fixtures and checks
+  the strict Betterleaks and Gitleaks configurations.
 - Bootstraps pinned tools and exercises mutating smoke cases only in full
   profiles.
 - Uses WSL-aware temporary paths when Windows PowerShell is invoked from WSL.
@@ -394,7 +404,9 @@ default `all` mode and the explicit `full` alias run Markdown lint, spelling
 checks, and static checks. The `static` mode includes Git whitespace checks,
 Bash syntax checks, ShellCheck, PowerShell parsing, SemVer pattern drift
 checks, QMD Manager tests, script smoke tests, Node syntax checks, and
-commitlint validation for introduced commits.
+Commitlint validation for every introduced commit. It also verifies the
+release-driven workflow contracts, repository-audit aggregation, secret
+scanner behavior, and canonical commit-message fixtures.
 
 The optional `readonly` mode uses only installed tools, disables optional Git
 locks, and does not install packages, access the network, modify tracked files,
@@ -444,7 +456,8 @@ bash tools/repository-audit.sh static
 - `spelling`: runs Codespell with the repository configuration.
 - `static`: runs Git whitespace checks, Bash and ShellCheck checks,
   complete PowerShell parsing, QMD Manager tests, SemVer drift checks, script
-  smoke tests, Node syntax checks, and commitlint checks.
+  smoke tests, Node syntax checks, workflow-contract checks, secret-scanner
+  behavior checks, and complete-range Commitlint checks.
 - `-h`, `--help`, `help`: prints usage information, then exits.
 
 ### Exit Status
@@ -475,3 +488,106 @@ inspect Git processes and lock files from a terminal outside Codex. If the
 behavior recurs, close Codex normally. Never terminate a process or remove a
 lock automatically; first confirm that it is orphaned and no active process
 owns it.
+
+## verify-repository-audit-runs.py
+
+### Features
+
+- Waits for the exact `push`-event Repository audit runs required for a release
+  commit.
+- Matches a numeric workflow ID, an exact 40-character SHA, one or more branch
+  or tag refs, and an inclusive creation-time lower bound.
+- Rejects failed, ambiguous, missing, or timed-out applicable runs.
+- Ignores manual runs and unrelated workflows, refs, commits, or older runs.
+- Supports a side-effect-free dry run and timestamped verbose polling.
+
+### Synopsis
+
+```text
+usage: python tools/verify-repository-audit-runs.py [options]
+
+options:
+  -h, --help                  show help and exit
+      --version               show version and exit
+      --dry-run               show the verification plan without GitHub access
+  -v, --verbose               show timestamped polling details
+      --repository OWNER/REPO target GitHub repository, required
+      --workflow-id ID        numeric Repository audit workflow ID, required
+      --sha SHA               exact target commit SHA, required
+      --ref REF               expected branch or tag, required and repeatable
+      --created-after UTC     inclusive UTC lower bound, required
+      --timeout-seconds N     maximum wait time, default: 600
+      --poll-seconds N        polling interval, default: 5
+```
+
+### Description
+
+`verify-repository-audit-runs.py` queries GitHub Actions through `gh api` for
+`push` runs at one exact commit. It selects only runs from the specified
+Repository audit workflow that match each required ref and were created at or
+after the supplied UTC boundary. Every required ref must resolve to exactly one
+completed successful run; a failed run or multiple matching runs stops the
+verification immediately, while missing or pending runs are polled until the
+timeout.
+
+### Usage/Examples
+
+Preview the verification without querying GitHub:
+
+```bash
+python tools/verify-repository-audit-runs.py \
+  --dry-run \
+  --repository example/example-app \
+  --workflow-id 123456789 \
+  --sha 0123456789abcdef0123456789abcdef01234567 \
+  --ref main \
+  --ref v1.2.3 \
+  --created-after 2026-08-04T15:00:00Z
+```
+
+Wait for the required branch and tag runs:
+
+```bash
+python tools/verify-repository-audit-runs.py \
+  --repository example/example-app \
+  --workflow-id 123456789 \
+  --sha 0123456789abcdef0123456789abcdef01234567 \
+  --ref main \
+  --ref v1.2.3 \
+  --created-after 2026-08-04T15:00:00Z \
+  --timeout-seconds 600 \
+  --poll-seconds 5
+```
+
+### Options
+
+- `-h`, `--help`: prints usage information, then exits.
+- `--version`: prints script version `v1.0.0`, then exits.
+- `--dry-run`: validates arguments and prints the read-only plan without
+  querying GitHub.
+- `-v`, `--verbose`: writes timestamped polling details to standard error.
+- `--repository OWNER/REPO`: repository whose runs are inspected.
+- `--workflow-id ID`: positive numeric Repository audit workflow identifier.
+- `--sha SHA`: exact 40-character hexadecimal target commit SHA.
+- `--ref REF`: expected branch or tag name. Repeat once for every required
+  unique ref.
+- `--created-after UTC`: inclusive lower bound in
+  `YYYY-MM-DDTHH:MM:SSZ` format.
+- `--timeout-seconds N`: non-negative maximum wait time. Defaults to `600`.
+- `--poll-seconds N`: non-negative polling interval. Defaults to `5` and must
+  be positive when the timeout is positive.
+
+### Exit Status
+
+- `0`: help or version was shown, the dry run completed, or every required run
+  completed successfully.
+- `1`: arguments were invalid, `gh` was unavailable, GitHub returned invalid
+  data, an applicable run failed or was ambiguous, or the timeout expired.
+
+### Appendix
+
+Authenticate `gh` for the target repository before live verification. Use the
+workflow's resolved numeric ID rather than its filename, and choose the
+creation-time boundary from the publication process so an older run cannot
+satisfy the check. A manual or scheduled success never substitutes for the
+required `push` run.

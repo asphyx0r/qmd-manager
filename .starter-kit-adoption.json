@@ -1,13 +1,19 @@
 {
   "schemaVersion": 2,
-  "baseArchiveSha256": "552462a415a095e5cfffe81cc068c190b79fa0d77d265cf8066f4f91d815fe48",
+  "baseArchiveSha256": "5a24706cd3beedfedb01b8cf2a49742b9c3b3aec9ae6957bbedb440ca786a862",
   "starterKit": {
     "repository": "https://github.com/asphyx0r/git-starter-kit",
-    "ref": "v2.3.3",
-    "commit": "9081e5fb774734031d07c02adff4c04d19acd71f"
+    "ref": "v2.4.0",
+    "commit": "f7e042f457dbb78ff251eb59f3b74d8597a62729"
   },
-  "repositoryCommit": "05654a64eb51044f5d78fe5ede2887621a13422d",
+  "repositoryCommit": "744a05bc1a19a7a4f80dc4c245856b99fd5efc89",
   "acceptedFiles": {
     ".codespellrc": "1717b76b364ac48b1cbbc32f56c053270b290d36298f9213a43d3259e74206bc"
+  },
+  "starterKitSource": {
+    "repository": "https://github.com/asphyx0r/git-starter-kit",
+    "ref": "v2.3.3",
+    "releaseUrl": "https://github.com/asphyx0r/git-starter-kit/releases/tag/v2.3.3",
+    "generatedAt": "2026-08-02T15:11:29.1695371Z"
   }
 }
