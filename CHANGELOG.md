@@ -2,6 +2,14 @@
 
 All notable changes to QMD Manager will be documented in this file.
 
+## v1.1.3
+
+| References | Description | Author(s) |
+| --- | --- | --- |
+| 16757df | fix(audit): guard downstream starter smoke tests | asphyx |
+| f1b978c | fix(audit): align with starter v2.4.0 | asphyx |
+| 744a05b | fix(release): remove starter-only packaging | asphyx |
+
 ## v1.1.2
 
 | References | Description | Author(s) |
