@@ -1,27 +1,27 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-08-03T11:28:38.3235256Z",
+  "generatedAt": "2026-08-08T10:22:47.3618541Z",
   "repository": {
     "name": "git-starter-kit",
     "slug": "asphyx0r/git-starter-kit",
-    "ref": "v2.4.0",
-    "commit": "f7e042f457dbb78ff251eb59f3b74d8597a62729"
+    "ref": "v2.4.1",
+    "commit": "2641edff66f1b32fca650a356e583d844efc4498"
   },
   "starterKit": {
     "repository": "https://github.com/asphyx0r/git-starter-kit",
-    "ref": "v2.4.0",
-    "commit": "f7e042f457dbb78ff251eb59f3b74d8597a62729"
+    "ref": "v2.4.1",
+    "commit": "2641edff66f1b32fca650a356e583d844efc4498"
   },
   "agentRules": {
     "repository": "https://github.com/asphyx0r/agent-coding-rules",
-    "ref": "v1.41.1",
-    "commit": "88731bf279cc77fb8aaf2499901b38ecf6c3a159"
+    "ref": "v1.41.2",
+    "commit": "2f5fe2bae5e8691eba6c499cff9421c59011098f"
   },
   "files": [
     {
       "path": "_agent-rules-source.json",
-      "sha256": "8cca923c77816230b9fd0f1c3e62d987f01184d30bee45b6aa57f1f642bd0507",
-      "canonicalSha256": "c14000243ae88977b2f405c6257eacf1664468e4d13faa88b27aea353fd8b463",
+      "sha256": "3debfd4a0a8795c4b8963d40fabf1caa388298b1539d69e3b649fef5ef6bddc3",
+      "canonicalSha256": "14ed88e8b2743841e88887e34d92a611a851263e341d4110ffccbcd04f5bc276",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "agent-rules"
@@ -108,8 +108,8 @@
     },
     {
       "path": "tools/repository-audit.sh",
-      "sha256": "2575fa427b6fc674c5a5e831d7e004e4d4f5b2c4c6646f4de393cad009a48e3e",
-      "canonicalSha256": "2575fa427b6fc674c5a5e831d7e004e4d4f5b2c4c6646f4de393cad009a48e3e",
+      "sha256": "1982500696ebe56ae35d53aeabcb8466234d418fe611ba8a2d4aab2073b1dae4",
+      "canonicalSha256": "1982500696ebe56ae35d53aeabcb8466234d418fe611ba8a2d4aab2073b1dae4",
       "contentKind": "text",
       "mode": "100755",
       "strategy": "initialize-only"
@@ -268,8 +268,8 @@
     },
     {
       "path": ".github/workflows/agent-rules-update.yml",
-      "sha256": "8f78fb34468c9892707148390cda9d5e04a922a2e80bbeccf69fdce5651adfa6",
-      "canonicalSha256": "8f78fb34468c9892707148390cda9d5e04a922a2e80bbeccf69fdce5651adfa6",
+      "sha256": "be907021e12b148de8a635951390623d970dddba7a91881cc2476cd417cb29b0",
+      "canonicalSha256": "be907021e12b148de8a635951390623d970dddba7a91881cc2476cd417cb29b0",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "replace"
@@ -340,16 +340,16 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "6bade8daa4a712c17eae637cdc761a0edd235f32dd3b8cdfb7f1a867c4c2b711",
-      "canonicalSha256": "6bade8daa4a712c17eae637cdc761a0edd235f32dd3b8cdfb7f1a867c4c2b711",
+      "sha256": "a333747abdd14a7c8783f8d13b5ed49409b68e5c2dcb3cdffb965041d0b6250a",
+      "canonicalSha256": "a333747abdd14a7c8783f8d13b5ed49409b68e5c2dcb3cdffb965041d0b6250a",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "agent-rules"
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "b87dadcb5a608bb0421d1906c4b58f965e0bf2f6bfdd9fc0c5fb3797e3c5b42e",
-      "canonicalSha256": "b87dadcb5a608bb0421d1906c4b58f965e0bf2f6bfdd9fc0c5fb3797e3c5b42e",
+      "sha256": "10d5b02c7df5c2d5221acf3586de1d2235bf4d7b2870cc50b5039501b62b4672",
+      "canonicalSha256": "10d5b02c7df5c2d5221acf3586de1d2235bf4d7b2870cc50b5039501b62b4672",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -444,8 +444,8 @@
     },
     {
       "path": "starter-kit-manifest.json",
-      "sha256": "c38911267538607ec8703f514f3d2b8ed74ff1b0075faae8ebe5ddff77e0274e",
-      "canonicalSha256": "c38911267538607ec8703f514f3d2b8ed74ff1b0075faae8ebe5ddff77e0274e",
+      "sha256": "9a0c6076a16e62ab1007b08ef1409f0136965f0f13cf968ca6d6fa7ff0693aa9",
+      "canonicalSha256": "9a0c6076a16e62ab1007b08ef1409f0136965f0f13cf968ca6d6fa7ff0693aa9",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "starter-kit-state"
@@ -492,8 +492,8 @@
     },
     {
       "path": ".github/workflows/repository-audit.yml",
-      "sha256": "db70c7602c785179d2f6c0d641bf5e86f2505b48a2eefbe336d235dba73dd004",
-      "canonicalSha256": "db70c7602c785179d2f6c0d641bf5e86f2505b48a2eefbe336d235dba73dd004",
+      "sha256": "e56b5ce341843cecc65a2b8a0e6ec2a5b2361ad2f81f1566fd72cc24727af5f0",
+      "canonicalSha256": "e56b5ce341843cecc65a2b8a0e6ec2a5b2361ad2f81f1566fd72cc24727af5f0",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "merge"
