@@ -317,8 +317,9 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Type: `file`
 - Status: `required`
 - Goal: Records repository, starter-kit, and canonical rule provenance.
-- Usage: Updated by the autonomous synchronization workflow and reviewed
-  during provenance checks.
+- Usage: The autonomous synchronization workflow updates agent-rules data. A
+  cumulative starter-kit upgrade updates only `repository` and `starterKit`.
+  Provenance checks review the combined record.
 - Notes: Schema 3 records source hashes and customized rules under
   `preservedFiles`.
 

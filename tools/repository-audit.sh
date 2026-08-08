@@ -248,6 +248,17 @@ resolve_audit_from_ref() {
 
   return 1
 }
+
+resolve_audit_to_ref() {
+  local to_ref="${AUDIT_COMMIT_SHA:-HEAD}"
+
+  if ! git rev-parse --verify --quiet "${to_ref}^{commit}" >/dev/null; then
+    printf 'Unable to resolve audit commit: %s\n' "$to_ref" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$to_ref"
+}
 check_semver_pattern_drift() {
   local node_cmd="$1"
 
@@ -432,6 +443,25 @@ check_repository_audit_workflow_contract() {
   if [ "$(grep -Fc '    timeout-minutes:' "$workflow_path")" -lt 4 ]; then
     printf '%s\n' \
       "Repository audit workflow does not set a timeout on every job." >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC2016
+  if grep -F \
+    'ref: ${{ github.event.pull_request.head.sha || github.sha }}' \
+    "$workflow_path" >/dev/null; then
+    printf '%s\n' \
+      "Repository audit workflow bypasses the pull request merge result." >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC2016
+  if [ "$(grep -Fc 'AUDIT_COMMIT_SHA: >-' "$workflow_path")" -ne 1 ] ||
+    ! grep -F '${{ github.event.pull_request.head.sha ||' \
+      "$workflow_path" >/dev/null ||
+    ! grep -F 'github.sha }}' "$workflow_path" >/dev/null; then
+    printf '%s\n' \
+      "Repository audit workflow does not bound pull request commit linting." >&2
     exit 1
   fi
 
@@ -669,23 +699,26 @@ check_release_guard_contract() {
 run_commitlint() {
   local from_ref=""
   local root_commit=""
+  local to_ref=""
   local commit_count
   local npx_cmd
   npx_cmd="$(resolve_npx_command)"
+
+  to_ref="$(resolve_audit_to_ref)"
 
   if ! from_ref="$(resolve_audit_from_ref)"; then
     from_ref=""
   fi
 
   if [ "$from_ref" = "$audit_all_commits_marker" ]; then
-    root_commit="$(git rev-list --max-parents=0 --reverse HEAD | tail -n 1)"
+    root_commit="$(git rev-list --max-parents=0 --reverse "$to_ref" | tail -n 1)"
     git log -1 --format=%B "$root_commit" | NPM_CONFIG_IGNORE_SCRIPTS=true \
       "$npx_cmd" --yes @commitlint/cli@21.0.2 --config commitlint.config.cjs
     from_ref="$root_commit"
   fi
 
   if [ -n "$from_ref" ]; then
-    commit_count="$(git rev-list --count "$from_ref..HEAD")"
+    commit_count="$(git rev-list --count "$from_ref..$to_ref")"
     if [ "$commit_count" -eq 0 ]; then
       return
     fi
@@ -693,9 +726,9 @@ run_commitlint() {
     NPM_CONFIG_IGNORE_SCRIPTS=true "$npx_cmd" --yes @commitlint/cli@21.0.2 \
       --config commitlint.config.cjs \
       --from "$from_ref" \
-      --to HEAD
+      --to "$to_ref"
   else
-    git log -1 --format=%B HEAD | NPM_CONFIG_IGNORE_SCRIPTS=true \
+    git log -1 --format=%B "$to_ref" | NPM_CONFIG_IGNORE_SCRIPTS=true \
       "$npx_cmd" --yes @commitlint/cli@21.0.2 --config commitlint.config.cjs
   fi
 }
@@ -802,21 +835,24 @@ run_commitlint_readonly() {
 
   local from_ref=""
   local root_commit=""
+  local to_ref=""
   local commit_count
+
+  to_ref="$(resolve_audit_to_ref)"
 
   if ! from_ref="$(resolve_audit_from_ref)"; then
     from_ref=""
   fi
 
   if [ "$from_ref" = "$audit_all_commits_marker" ]; then
-    root_commit="$(git rev-list --max-parents=0 --reverse HEAD | tail -n 1)"
+    root_commit="$(git rev-list --max-parents=0 --reverse "$to_ref" | tail -n 1)"
     git log -1 --format=%B "$root_commit" |
       "$commitlint_cmd" --config commitlint.config.cjs
     from_ref="$root_commit"
   fi
 
   if [ -n "$from_ref" ]; then
-    commit_count="$(git rev-list --count "$from_ref..HEAD")"
+    commit_count="$(git rev-list --count "$from_ref..$to_ref")"
     if [ "$commit_count" -eq 0 ]; then
       return
     fi
@@ -824,9 +860,9 @@ run_commitlint_readonly() {
     "$commitlint_cmd" \
       --config commitlint.config.cjs \
       --from "$from_ref" \
-      --to HEAD
+      --to "$to_ref"
   else
-    git log -1 --format=%B HEAD |
+    git log -1 --format=%B "$to_ref" |
       "$commitlint_cmd" --config commitlint.config.cjs
   fi
 }
