@@ -362,6 +362,63 @@ Use `--remote` only after checking that the target remote URL is correct. When
 Run from Bash 4 or newer. On Windows, the PowerShell initializer may be easier
 when the target path is a native Windows path.
 
+## release-artifacts.py
+
+### Features
+
+- Generates root `VERSION`, `SHA256SUMS`, and `manifest.json` files for one
+  exact SemVer release.
+- Reads Git blobs from `HEAD`, the index, or a selected tree and excludes
+  untracked, ignored, and absent files.
+- Generates the manifest from `templates/release/manifest.template.json` and
+  validates it against `templates/release/manifest.schema.json`.
+- Requires every release-specific business value in an external JSON file and
+  never infers unknown metadata.
+
+### Synopsis
+
+```text
+usage: python tools/release-artifacts.py [options] COMMAND
+```
+
+Install the pinned validator before using the tool:
+
+```bash
+python -m pip install \
+  --requirement tools/release-artifacts-requirements.txt
+```
+
+### Usage/Examples
+
+Preview artifact preparation with explicit metadata outside the repository:
+
+```bash
+python tools/release-artifacts.py --dry-run prepare \
+  --release-ref v1.2.3 \
+  --release-date 2026-08-18T12:00:00Z \
+  --metadata-file /external/path/release-metadata.json
+```
+
+After the preview succeeds, generate the files with the same inputs and
+`--force`, then validate the staged content:
+
+```bash
+python tools/release-artifacts.py check \
+  --expected-ref v1.2.3 \
+  --index
+```
+
+Use `--treeish v1.2.3` instead of `--index` to validate an immutable tag.
+The inventory includes supported Git blobs and `VERSION`, but excludes the
+self-referential `SHA256SUMS` and `manifest.json` outputs.
+
+### Exit Status
+
+- `0`: preparation or validation succeeded.
+- `1`: metadata, schema, Git content, checksum, confirmation, or write
+  validation failed.
+- `2`: command-line parsing failed.
+
 ## repository-audit.sh
 
 ### Features
@@ -370,8 +427,9 @@ when the target path is a native Windows path.
 - Defaults to the full audit profile.
 - Supports an optional read-only profile and focused CI audit modes.
 - Checks Markdown, spelling, whitespace, shell scripts, PowerShell parsing,
-  YAML, workflow contracts, scanner behavior, SemVer pattern drift, and commit
-  messages over the complete introduced-commit range.
+  YAML, workflow contracts, release artifacts, scanner behavior, SemVer
+  pattern drift, and commit messages over the complete introduced-commit
+  range.
 - Parses every tracked or untracked non-ignored PowerShell file and runs the
   dependency-free backup and `Initialize-QmdCollection` test suites.
 - Exercises the canonical valid and invalid commit-message fixtures and checks
@@ -403,10 +461,10 @@ modes:
 default `all` mode and the explicit `full` alias run Markdown lint, spelling
 checks, and static checks. The `static` mode includes Git whitespace checks,
 Bash syntax checks, ShellCheck, PowerShell parsing, SemVer pattern drift
-checks, QMD Manager tests, script smoke tests, Node syntax checks, and
-Commitlint validation for every introduced commit. It also verifies the
-release-driven workflow contracts, repository-audit aggregation, secret
-scanner behavior, and canonical commit-message fixtures.
+checks, QMD Manager and release-artifact tests, script smoke tests, Node syntax
+checks, and Commitlint validation for every introduced commit. It also
+verifies the release-driven workflow contracts, repository-audit aggregation,
+secret scanner behavior, and canonical commit-message fixtures.
 
 The optional `readonly` mode uses only installed tools, disables optional Git
 locks, and does not install packages, access the network, modify tracked files,
@@ -455,9 +513,10 @@ bash tools/repository-audit.sh static
 - `markdown`: runs `markdownlint-cli2` against repository Markdown files.
 - `spelling`: runs Codespell with the repository configuration.
 - `static`: runs Git whitespace checks, Bash and ShellCheck checks,
-  complete PowerShell parsing, QMD Manager tests, SemVer drift checks, script
-  smoke tests, Node syntax checks, workflow-contract checks, secret-scanner
-  behavior checks, and complete-range Commitlint checks.
+  complete PowerShell parsing, QMD Manager and release-artifact tests, SemVer
+  drift checks, script smoke tests, Node syntax checks, workflow-contract
+  checks, secret-scanner behavior checks, and complete-range Commitlint
+  checks.
 - `-h`, `--help`, `help`: prints usage information, then exits.
 
 ### Exit Status
@@ -474,7 +533,8 @@ validation issue is understood and fixed.
 
 The full audit needs local tools such as `git`, `bash`, `shellcheck`, a
 PowerShell command, `python`, `node`, and `npx`. It also needs network access
-to npm for Markdown lint bootstrapping and PyPI for Codespell bootstrapping.
+to npm for Markdown lint bootstrapping and PyPI for Codespell and JSON Schema
+validator bootstrapping.
 
 Use focused modes while diagnosing failures. For example, `markdown` and
 `spelling` isolate documentation issues, while `static` isolates script,
