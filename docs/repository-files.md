@@ -43,12 +43,13 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 
 - Type: `directory`
 - Status: `optional`
-- Goal: Provides the canonical guarded SemVer analysis and publication
-  workflow.
+- Goal: Provides the canonical guarded SemVer analysis, remote audit preflight,
+  and publication workflow.
 - Usage: Use through `$git-commit-push-tag` only when explicitly requested.
 - Notes: Repository mutation requires an explicit bump. GitHub Release
-  publication requires a separate explicit parameter. Only applicable
-  repository-specific checks gate completion.
+  publication requires a separate explicit parameter, a successful preflight
+  of common release workflows and GitHub App configuration, and produces no
+  assets.
 
 ### `.agents/skills/git-commit-push-tag/SKILL.md`
 
@@ -56,7 +57,10 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Status: `optional`
 - Goal: Loads the canonical guarded Git workflow instructions.
 - Usage: Codex loads this file after explicit skill invocation.
-- Notes: The canonical reference is the generic behavioral source of truth.
+- Notes: The canonical reference is the sole behavioral source of truth,
+  including exact-file commit validation, remote audit checks, the common
+  `Agent rules update` and `Repository audit` release runs, and the stable,
+  asset-free GitHub Release contract.
 
 ### `.agents/skills/git-commit-push-tag/agents/`
 
@@ -73,7 +77,7 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Goal: Configures display metadata and explicit-invocation policy for the
   `git-commit-push-tag` skill.
 - Usage: Codex uses this metadata in skill UI and invocation policy handling.
-- Notes: Advertises the guarded release flow while
+- Notes: Advertises the guarded audit-preflight and asset-free release flow while
   `allow_implicit_invocation` remains `false`.
 
 ### `.agents/skills/git-commit-push-tag/references/`
@@ -88,11 +92,12 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 
 - Type: `file`
 - Status: `optional`
-- Goal: Defines canonical bump analysis, exact-file commit validation, explicit
-  release-artifact preparation, remote audit preflight, tag, atomic final push,
-  synchronization, and generic GitHub Release behavior.
+- Goal: Defines canonical bump analysis, exact commit validation, explicit
+  release-artifact preparation, remote audit preflight, tag, atomic push,
+  synchronization, and stable asset-free GitHub Release behavior.
 - Usage: Read completely before the skill takes any action or runs Git.
-- Notes: Preserve this file as the skill's sole behavioral source of truth.
+- Notes: Preserve this file as the skill's sole behavioral source of truth. It
+  requires the common `Agent rules update` and `Repository audit` release runs.
 
 ### `.betterleaks.toml`
 
@@ -226,6 +231,9 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
   opens a repository-local pull request when safe updates exist.
 - Notes: Preserves customized rules. Set `AGENT_RULES_SYNC_ENABLED=false` to
   suspend scheduled and manual runs; published releases always run the job.
+  The guarded release flow requires the repository variable
+  `AGENT_RULES_APP_CLIENT_ID` and secret `AGENT_RULES_APP_PRIVATE_KEY` before
+  publication, then requires the exact automatic release run to succeed.
 
 ### `.github/workflows/release-artifacts.yml`
 

@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-08-19T10:10:01.3261158Z",
+  "generatedAt": "2026-08-20T20:57:47.5417766Z",
   "repository": {
     "name": "git-starter-kit",
     "slug": "asphyx0r/git-starter-kit",
-    "ref": "v2.5.0",
-    "commit": "946885be13e4db589bccc8022f78c23b341f122f"
+    "ref": "v2.6.0",
+    "commit": "cb76289857fa2296c053048b932217cc821a5b28"
   },
   "starterKit": {
     "repository": "https://github.com/asphyx0r/git-starter-kit",
-    "ref": "v2.5.0",
-    "commit": "946885be13e4db589bccc8022f78c23b341f122f"
+    "ref": "v2.6.0",
+    "commit": "cb76289857fa2296c053048b932217cc821a5b28"
   },
   "agentRules": {
     "repository": "https://github.com/asphyx0r/agent-coding-rules",
@@ -20,8 +20,8 @@
   "files": [
     {
       "path": "_agent-rules-source.json",
-      "sha256": "1d5082e47fbdad96fdf77561b347f59d768334ad2667180cd034caa86a5934fd",
-      "canonicalSha256": "65f442107311338cfe092144213ce6c324e8c2af5749712aa81e4d0b30ef3409",
+      "sha256": "35df485b9724757f2ffe289a534f722edf86bb957899ee5952207360bd2edfbc",
+      "canonicalSha256": "3e734e5028c9d84e0a57eb3eb4c58caf0afcb197894342f5cc08e7ffb1d543dd",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "agent-rules"
@@ -220,8 +220,8 @@
     },
     {
       "path": "tools/repository-audit.sh",
-      "sha256": "2bdfa23334209f694353aad73ec3c82462ae1e0c5c48c7840f99b7263adfe21f",
-      "canonicalSha256": "2bdfa23334209f694353aad73ec3c82462ae1e0c5c48c7840f99b7263adfe21f",
+      "sha256": "64857d2752d44f53bdbae16caa818b1ad694e961fca2c377726e5f74c56f5994",
+      "canonicalSha256": "64857d2752d44f53bdbae16caa818b1ad694e961fca2c377726e5f74c56f5994",
       "contentKind": "text",
       "mode": "100755",
       "strategy": "initialize-only"
@@ -252,16 +252,16 @@
     },
     {
       "path": ".agents/skills/git-commit-push-tag/references/git-commit-push-tag.txt",
-      "sha256": "5a3798e39a4b59c19f851650bd5a60ccced0967357367eb156d0ceafef548552",
-      "canonicalSha256": "5a3798e39a4b59c19f851650bd5a60ccced0967357367eb156d0ceafef548552",
+      "sha256": "e572db40f19d3a3d3fcb6dbd0d990797ded53be5e2feb7702bf31f18cc39689e",
+      "canonicalSha256": "e572db40f19d3a3d3fcb6dbd0d990797ded53be5e2feb7702bf31f18cc39689e",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "replace"
     },
     {
       "path": "docs/repository-files.md",
-      "sha256": "36269c1e0b6b0f32ce81ea027d932d6254e48a3bb4e4e7b8584596b17fe664c5",
-      "canonicalSha256": "36269c1e0b6b0f32ce81ea027d932d6254e48a3bb4e4e7b8584596b17fe664c5",
+      "sha256": "5a1c534629ddac2fe07712ce6e99e12355d01ceb53df0daca005074b9e22267b",
+      "canonicalSha256": "5a1c534629ddac2fe07712ce6e99e12355d01ceb53df0daca005074b9e22267b",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -372,8 +372,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "8a69cff24dc5be129b48fd013805e14d296f72ed4e96f7fa5b1094cb3bbada9d",
-      "canonicalSha256": "8a69cff24dc5be129b48fd013805e14d296f72ed4e96f7fa5b1094cb3bbada9d",
+      "sha256": "2692ec8de04f5a792fba5c7fd78973f77534dd6d9970e1de4b7d166a4308118b",
+      "canonicalSha256": "2692ec8de04f5a792fba5c7fd78973f77534dd6d9970e1de4b7d166a4308118b",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -508,8 +508,8 @@
     },
     {
       "path": "starter-kit-manifest.json",
-      "sha256": "c708ed80b16e4f7a5a9ef156df778e50b945cc997c68d4e6da1fe1784a9c525c",
-      "canonicalSha256": "c708ed80b16e4f7a5a9ef156df778e50b945cc997c68d4e6da1fe1784a9c525c",
+      "sha256": "3924991b5ca20c0d37e137705629b9aa23a002e2c1f64a6026c9d5455ccec0ad",
+      "canonicalSha256": "3924991b5ca20c0d37e137705629b9aa23a002e2c1f64a6026c9d5455ccec0ad",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "starter-kit-state"
@@ -532,8 +532,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "ec56888a5d87fa24bc244d581495fcbc64138eae9ca4dedd68f1414bd7f2f8c5",
-      "canonicalSha256": "ec56888a5d87fa24bc244d581495fcbc64138eae9ca4dedd68f1414bd7f2f8c5",
+      "sha256": "1d17114e008c6eadf3e9a52356994beb081156ef02439344324d0e1678852f9e",
+      "canonicalSha256": "1d17114e008c6eadf3e9a52356994beb081156ef02439344324d0e1678852f9e",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"
@@ -556,8 +556,8 @@
     },
     {
       "path": "docs/SKILLS.md",
-      "sha256": "18f420d1d0b0750e2e0074b64b9eefe8490d88e9b9cbe31e854ec5518208710f",
-      "canonicalSha256": "18f420d1d0b0750e2e0074b64b9eefe8490d88e9b9cbe31e854ec5518208710f",
+      "sha256": "18eb230237a3a788a06597df23c1f4b5b8d89cd20685a1f841d10929daa42b07",
+      "canonicalSha256": "18eb230237a3a788a06597df23c1f4b5b8d89cd20685a1f841d10929daa42b07",
       "contentKind": "text",
       "mode": "100644",
       "strategy": "initialize-only"

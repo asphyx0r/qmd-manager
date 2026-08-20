@@ -565,7 +565,88 @@ check_release_artifact_contract() {
   if [ -f "$release_reference_path" ] &&
     ! grep -F "inventorieront le \`starter-kit-manifest.json\` final" \
       "$release_reference_path" >/dev/null; then
-    printf '%s\n' 'Starter release guard omits artifact preparation.' >&2
+    printf '%s\n' \
+      'Starter release guard omits the final starter manifest.' >&2
+    exit 1
+  fi
+}
+
+check_release_skill_contract() {
+  local skill_path=".agents/skills/git-commit-push-tag/SKILL.md"
+  local metadata_path=".agents/skills/git-commit-push-tag/agents/openai.yaml"
+  local reference_path=".agents/skills/git-commit-push-tag/references/git-commit-push-tag.txt"
+  local expected_steps
+  local phase_two_line
+  local preconditions_line
+  local release_metadata_line
+  local steps
+
+  for required_path in "$skill_path" "$metadata_path" "$reference_path"; do
+    if [ ! -f "$required_path" ] ||
+      ! git ls-files --error-unmatch "$required_path" >/dev/null 2>&1; then
+      printf 'Release skill component is missing or untracked: %s\n' \
+        "$required_path" >&2
+      exit 1
+    fi
+  done
+
+  # shellcheck disable=SC2016
+  if ! grep -F \
+    '[`references/git-commit-push-tag.txt`](references/git-commit-push-tag.txt)' \
+    "$skill_path" >/dev/null ||
+    ! grep -F 'Treat it as the sole behavioral' "$skill_path" >/dev/null ||
+    ! grep -F 'allow_implicit_invocation: false' "$metadata_path" >/dev/null; then
+    printf '%s\n' \
+      'Release skill does not delegate exclusively to the canonical reference.' \
+      >&2
+    exit 1
+  fi
+
+  expected_steps="$(seq -s, 1 41)"
+  steps="$(
+    grep -E '^[0-9]+\.' "$reference_path" |
+      sed 's/\..*$//' |
+      paste -sd, -
+  )"
+  if [ "$steps" != "$expected_steps" ]; then
+    printf '%s\n' 'Release guard steps are not contiguous from 1 through 41.' >&2
+    exit 1
+  fi
+
+  preconditions_line="$(
+    grep -n -m 1 -F 'PRÉCONDITIONS AVANT TOUTE MUTATION' \
+      "$reference_path" | cut -d: -f1
+  )"
+  phase_two_line="$(
+    grep -n -m 1 -F 'PHASE 2 — PRÉPARATION DU COMMIT' \
+      "$reference_path" | cut -d: -f1
+  )"
+  # shellcheck disable=SC2016
+  release_metadata_line="$(
+    grep -n -m 1 -F 'program_id`, `name`, `channel`' \
+      "$reference_path" | cut -d: -f1
+  )"
+  if [ -z "$preconditions_line" ] || [ -z "$phase_two_line" ] ||
+    [ -z "$release_metadata_line" ] ||
+    [ "$preconditions_line" -ge "$phase_two_line" ] ||
+    [ "$release_metadata_line" -ge "$phase_two_line" ]; then
+    printf '%s\n' \
+      'Release prerequisites and metadata are not validated before mutation.' >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC2016
+  if ! grep -F 'le fichier frère `git-starter-kit-release-package.txt`' \
+    "$reference_path" >/dev/null ||
+    ! grep -F 'AGENT_RULES_APP_CLIENT_ID' "$reference_path" >/dev/null ||
+    ! grep -F 'AGENT_RULES_APP_PRIVATE_KEY' "$reference_path" >/dev/null ||
+    ! grep -F 'Elle contient toujours `Agent rules update` et `Repository audit`' \
+      "$reference_path" >/dev/null ||
+    ! grep -F 'Fixe `RELEASE_STATUS=complete` uniquement après la réussite' \
+      "$reference_path" >/dev/null; then
+    printf '%s\n' \
+      'Universal release guard omits common provisioning or completion gates.' \
+      >&2
     exit 1
   fi
 }
@@ -1734,6 +1815,7 @@ run_static() {
     check_repository_audit_workflow_contract
   fi
   check_release_artifact_contract
+  check_release_skill_contract
   if [ -f .github/workflows/release-package.yml ]; then
     check_release_package_portability
     check_release_guard_contract
@@ -1808,6 +1890,7 @@ run_readonly() {
     check_repository_audit_workflow_contract
   fi
   check_release_artifact_contract
+  check_release_skill_contract
   if [ -f .github/workflows/release-package.yml ]; then
     check_release_package_portability
     check_release_guard_contract

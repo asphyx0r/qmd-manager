@@ -9,7 +9,7 @@ is the authoritative source for its behavior and instructions.
 | Skill | Purpose | Path |
 | --- | --- | --- |
 <!-- markdownlint-disable-next-line MD013 -->
-| **Git Commit, Push, Tag, and GitHub Release** | Runs guarded SemVer analysis, release-artifact preparation, audit preflight, tag, atomic final push, and an optional template-based GitHub Release. | `.agents/skills/git-commit-push-tag` |
+| **Git Commit, Push, Tag, and GitHub Release** | Runs guarded SemVer analysis, release-artifact preparation, audit preflight, tag, atomic final push, and an optional stable, asset-free GitHub Release. | `.agents/skills/git-commit-push-tag` |
 
 ## Git Commit, Push, Tag, and GitHub Release
 
@@ -20,7 +20,8 @@ is the authoritative source for its behavior and instructions.
 Runs the canonical guarded SemVer analysis, exact-file commit validation,
 explicit release-metadata collection, deterministic release-artifact
 preparation, remote SHA preflight, tag, atomic final push, synchronization
-checks, and optional template-based GitHub Release workflow.
+checks, and an optional stable, asset-free, template-based GitHub Release
+workflow.
 
 ### When to use
 
@@ -42,15 +43,18 @@ checks, and optional template-based GitHub Release workflow.
   inferring unknown release metadata.
 - Prevalidate the release SHA, then require every expected branch and tag audit
   run around the atomic final push.
-- Complete a requested, template-based GitHub Release after every applicable
-  repository-specific check succeeds.
+- Prevalidate release workflows and required GitHub App configuration before
+  mutation when a GitHub Release is requested.
+- Create a requested stable GitHub Release from the supplied template without
+  assets only after the exact `Agent rules update` and `Repository audit`
+  release runs, plus every applicable repository-specific run, succeed.
 
 ### Usage examples
 
 ```text
 Use $git-commit-push-tag to analyze the next SemVer bump.
-Mutate only with an explicit BUMP, and complete a requested GitHub Release
-only after every applicable repository-specific check succeeds.
+Mutate only with an explicit BUMP, and complete a requested stable,
+asset-free GitHub Release only after every required audit succeeds.
 ```
 
 ### Contents
@@ -69,10 +73,17 @@ only after every applicable repository-specific check succeeds.
 - `.agents/skills/git-commit-push-tag/references/git-commit-push-tag.txt` must
   be readable in full before the skill takes any action or runs any Git
   command.
+- The repository must retain active `Repository audit`, `Release artifacts`,
+  and `Agent rules update` workflows. A requested GitHub Release additionally
+  requires the repository variable `AGENT_RULES_APP_CLIENT_ID` and the
+  repository secret `AGENT_RULES_APP_PRIVATE_KEY`.
 
 ### Limitations
 
 - The canonical reference is the sole behavioral source of truth and must be
   followed exactly.
+- The preflight can verify that the GitHub App secret exists, but only the
+  mandatory `Agent rules update` release run proves that its value and
+  installation access work.
 - If the canonical reference cannot be read completely, the skill stops
   without modifying the repository.
