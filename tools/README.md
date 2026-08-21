@@ -372,8 +372,8 @@ when the target path is a native Windows path.
   untracked, ignored, and absent files.
 - Generates the manifest from `templates/release/manifest.template.json` and
   validates it against `templates/release/manifest.schema.json`.
-- Requires every release-specific business value in an external JSON file and
-  never infers unknown metadata.
+- Requires release-specific business metadata from an external JSON file and
+  never derives unknown values from repository content.
 
 ### Synopsis
 
@@ -387,6 +387,11 @@ Install the pinned validator before using the tool:
 python -m pip install \
   --requirement tools/release-artifacts-requirements.txt
 ```
+
+The release workflow resolves provable values from explicit current input,
+authoritative project sources, exact release facts, or a non-conflicting
+previous manifest. It asks the user only for unresolved or contradictory values
+and requires explicit validation.
 
 ### Usage/Examples
 
