@@ -65,9 +65,11 @@ Follow `RELEASE_RULES.md` before creating a release tag. New SemVer tags are
 annotated unless an explicit repository-specific rule states otherwise. Do not
 create, rewrite, or publish tags as part of an unrelated contribution.
 
-Before creating a new release tag, collect every unknown manifest value from
-the user and commit the generated `VERSION`, `SHA256SUMS`, and `manifest.json`
-together. Never infer missing release metadata.
+Before creating a new release tag, resolve manifest values from authoritative
+project sources, exact release facts, or a non-conflicting previous manifest.
+Ask the user only for unresolved or contradictory values, require explicit
+validation, and commit the generated `VERSION`, `SHA256SUMS`, and
+`manifest.json` together. Never invent missing release metadata.
 
 ## Pull requests
 
