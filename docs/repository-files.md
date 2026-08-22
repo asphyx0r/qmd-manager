@@ -424,6 +424,13 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Usage: Read before making changes in this repository.
 - Notes: Avoid duplicating agent instructions in GitHub-specific files.
 
+### `BRANCH_RULES.md`
+
+- Type: `file`
+- Status: `required`
+- Goal: Defines universal branch lifecycle and naming rules.
+- Usage: Read before the first repository write or any branch operation.
+
 ### `CODING_RULES.md`
 
 - Type: `file`
