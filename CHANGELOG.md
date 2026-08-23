@@ -2,6 +2,19 @@
 
 All notable changes to QMD Manager will be documented in this file.
 
+## v1.1.4
+
+| References | Description | Author(s) |
+| --- | --- | --- |
+| e043451 | chore(agents): sync agent rules to v1.42.0 (#7) | agent-coding-rules-sync[bot] |
+| bb29571 | chore(config): adopt starter kit v2.7.0 (#6) | asphyx |
+| 6c4055b | chore(config): adopt starter kit v2.6.1 (#5) | asphyx |
+| 851f6e5 | chore(config): adopt starter kit v2.6.0 | asphyx |
+| 1597fc9 | chore(config): adopt starter kit v2.5.0 | asphyx |
+| 7f0e563 | chore(config): adopt starter kit v2.4.2 | asphyx |
+| 942d004 | chore(agents): sync rules to v1.41.2 | asphyx |
+| dc8f59f | chore(config): adopt starter kit v2.4.1 | asphyx |
+
 ## v1.1.3
 
 | References | Description | Author(s) |
