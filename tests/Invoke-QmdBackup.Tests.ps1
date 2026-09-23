@@ -123,7 +123,9 @@ try {
   $HyphenFile = Join-Path $HyphenDirectory 'README.md'
   [System.IO.File]::WriteAllText($SpacedFile, "# Spaced path`n", $script:Utf8NoBom)
   [System.IO.File]::WriteAllText($HyphenFile, "# Hyphen path`n", $script:Utf8NoBom)
-  $NodePath = [string](Get-Command 'node' -CommandType Application).Source
+  $NodePath = [string](
+    Get-Command 'node' -CommandType Application | Select-Object -First 1
+  ).Source
   $QmdPackageRoot = Join-Path $TestRoot 'qmd-package'
   $QmdDistDirectory = Join-Path $QmdPackageRoot 'dist'
   $FastGlobDirectory = Join-Path $QmdPackageRoot 'node_modules\fast-glob'

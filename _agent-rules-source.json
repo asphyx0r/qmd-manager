@@ -3,13 +3,13 @@
   "repository": {
     "name": "git-starter-kit",
     "slug": "asphyx0r/git-starter-kit",
-    "ref": "v2.7.0",
-    "commit": "ee1d79e1c0516ced2a5171e65e14bc0fef762ce5"
+    "ref": "v2.11.2",
+    "commit": "943ef42b8fd85a3a67a6b14eaba1de30b0707e12"
   },
   "starterKit": {
     "repository": "https://github.com/asphyx0r/git-starter-kit",
-    "ref": "v2.7.0",
-    "commit": "ee1d79e1c0516ced2a5171e65e14bc0fef762ce5"
+    "ref": "v2.11.2",
+    "commit": "943ef42b8fd85a3a67a6b14eaba1de30b0707e12"
   },
   "agentRules": {
     "repository": "https://github.com/asphyx0r/agent-coding-rules",

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "repositoryRole": "project",
+  "releaseKind": "deployment",
+  "automations": {
+    "agentRulesSync": true,
+    "guardedMerge": true,
+    "releasePreflight": true
+  },
+  "checks": [
+    {
+      "name": "Python application and compatibility tests",
+      "argv": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_*.py"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "Commit validation regression tests",
+      "argv": [
+        "bash",
+        "tests/test_commit_message_validation.sh"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "Project Markdown",
+      "argv": [
+        "bash",
+        "-c",
+        "set -euo pipefail; source tools/repository-audit.sh; initialize_repository_root; run_markdown"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "Project spelling",
+      "argv": [
+        "codespell",
+        "--config",
+        ".codespellrc",
+        "."
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "QMD initialization tests",
+      "argv": [
+        "pwsh",
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "tests/Initialize-QmdCollection.Tests.ps1"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "QMD backup tests",
+      "argv": [
+        "pwsh",
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "tests/Invoke-QmdBackup.Tests.ps1"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "Project PowerShell parsing",
+      "argv": [
+        "bash",
+        "-c",
+        "set -euo pipefail; source tools/repository-audit.sh; initialize_repository_root; run_powershell_parse_readonly"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "name": "Commit test shell lint",
+      "argv": [
+        "bash",
+        "-c",
+        "set -euo pipefail; source tools/repository-audit.sh; initialize_repository_root; run_hook_shell_static \"$repository_root\" tests/test_commit_message_validation.sh"
+      ],
+      "workingDirectory": ".",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    }
+  ]
+}

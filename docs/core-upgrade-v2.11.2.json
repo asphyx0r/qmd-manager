@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "from": "v2.7.0",
+  "to": "v2.11.2",
+  "archiveSha256": "bb5563465f94b45d46790767fb7d57aa2a0bc9fd3614967991416c9602f28b83",
+  "starterKit": {
+    "repository": "https://github.com/asphyx0r/git-starter-kit",
+    "ref": "v2.11.2",
+    "commit": "943ef42b8fd85a3a67a6b14eaba1de30b0707e12"
+  },
+  "preservedRepositoryBaseline": "65aba54a71e14ff1e04915173900216a7741741e",
+  "preservedStarterKitSource": {
+    "repository": "https://github.com/asphyx0r/git-starter-kit",
+    "ref": "v2.3.3",
+    "releaseUrl": "https://github.com/asphyx0r/git-starter-kit/releases/tag/v2.3.3",
+    "generatedAt": "2026-08-02T15:11:29.1695371Z"
+  },
+  "localAdaptations": [
+    {
+      "path": ".betterleaks.toml",
+      "strategy": "merge",
+      "officialCanonicalSha256": "89d4256971c0eade426192e522fc64fdf4926190a9ac4f30a9ea0959826a55ea",
+      "localCanonicalSha256": "eb06c4c01a80a4b01c35d525967bb97103fa8cc4d90a6e9ca49955f3d25bd423",
+      "reason": "Preserve the project's existing scanner rules."
+    },
+    {
+      "path": ".codespellrc",
+      "strategy": "merge",
+      "officialCanonicalSha256": "d2e2577db40e89beaab25d50d2d32ddf1782f138633b76635ce1374441a3cdf2",
+      "localCanonicalSha256": "53b299efe728c87053154c7095efbb695570aeaee6caa352bbfacbd8afc35228",
+      "reason": "Preserve project spelling vocabulary and exclusions."
+    },
+    {
+      "path": ".github/workflows/repository-audit.yml",
+      "strategy": "merge",
+      "officialCanonicalSha256": "4c64e6cfa4d38435da19bcf0b74240842bf02d406d7261a8a09057fec4fb05f6",
+      "localCanonicalSha256": "6f216463bb693d234f176cfd5793e7733b270962b4dc5045199b1341bb75e560",
+      "reason": "Install each project job's locked dependencies and shell linters, including the Windows core job's required shell tools."
+    },
+    {
+      "path": ".gitignore",
+      "strategy": "merge",
+      "officialCanonicalSha256": "84b2db6e695cf783afc5e7a31f3934afd607dfbc82ae9a8fafabd1d5b9dde481",
+      "localCanonicalSha256": "80a2994893402b118142aaa504dd8c782738006157281607228da6e43260f2be",
+      "reason": "Keep verified Python caches and project-generated exports ignored."
+    },
+    {
+      "path": ".gitleaks.toml",
+      "strategy": "merge",
+      "officialCanonicalSha256": "89d4256971c0eade426192e522fc64fdf4926190a9ac4f30a9ea0959826a55ea",
+      "localCanonicalSha256": "eb06c4c01a80a4b01c35d525967bb97103fa8cc4d90a6e9ca49955f3d25bd423",
+      "reason": "Preserve the project's existing scanner rules."
+    },
+    {
+      "path": "commitlint.config.cjs",
+      "strategy": "replace",
+      "officialCanonicalSha256": "ede78d50af1e95281381f68f97f35c0f26122ee00e066e20ebd31c2bc3f711d2",
+      "localCanonicalSha256": "d03eb3b1c71e66da721e24e68f22f96db3184cb91f7d862dc7f0d17855c81c38",
+      "reason": "Preserve the existing accepted commit scopes."
+    },
+    {
+      "path": "tools/project_validation.py",
+      "strategy": "replace",
+      "officialCanonicalSha256": "fd69b002637a0eb1cf0b5ef182311a16c84deaaa3f99375bd2f7bd348c3fb2b8",
+      "localCanonicalSha256": "1279ffc2a92bbe3ea96a18057c0538c4c2dcc45d192a2fb684679f690b42d980",
+      "reason": "Honor PATH when selecting a bare executable; Windows otherwise chooses system WSL and bypasses selected Python environments."
+    },
+    {
+      "path": "tools/quality/package-lock.json",
+      "strategy": "replace",
+      "officialCanonicalSha256": "3d4484c1aee10376d3b7029a2385b46c5863806bf8a9192c1e743253be173b15",
+      "localCanonicalSha256": "c10cd224660db175d48405f812649026cf8c77c333cb339ac5ff9dd2416479d1",
+      "reason": "Lock the same minimal smol-toml security correction with its registry integrity digest."
+    },
+    {
+      "path": "tools/quality/package.json",
+      "strategy": "replace",
+      "officialCanonicalSha256": "57d8884c0c67a2e86fdf3029d325b41d8725baaa43fb619058c5badf29dc86c7",
+      "localCanonicalSha256": "042726db0e974b05ca33e2397c34410074dfd9e86c446fce285d64febb654298",
+      "reason": "Override vulnerable smol-toml 1.7.0 with patched 1.7.1 without changing direct quality-tool versions."
+    },
+    {
+      "path": "tools/repository-audit/common.sh",
+      "strategy": "replace",
+      "officialCanonicalSha256": "0ed22ef50dee7f148067bebc55be65b5dcc4ab5583105cf3967bca7392cf678d",
+      "localCanonicalSha256": "64bf4b2d9ea0dcb5a4c0745a345f29ae5f9d74b4e3ba2cf8ffade13036289a3e",
+      "reason": "Resolve the audit root without inherited Git-directory overrides and preserve the project's PowerShell precedence."
+    }
+  ]
+}

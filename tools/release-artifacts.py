@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -13,7 +14,18 @@ import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Literal, overload
+
+# Load the sibling by path for standalone and importlib-based callers alike.
+_GIT_SPEC = importlib.util.spec_from_file_location(
+    "git_objects", Path(__file__).with_name("git_objects.py")
+)
+assert _GIT_SPEC is not None and _GIT_SPEC.loader is not None
+git_objects = importlib.util.module_from_spec(_GIT_SPEC)
+_GIT_SPEC.loader.exec_module(git_objects)
+
+GIT_TIMEOUT_SECONDS = 30
+GIT_BULK_TIMEOUT_SECONDS = 300
 
 VERSION = "1.0.0"
 VERSION_PATH = "VERSION"
@@ -21,6 +33,7 @@ CHECKSUMS_PATH = "SHA256SUMS"
 MANIFEST_PATH = "manifest.json"
 TEMPLATE_PATH = "templates/release/manifest.template.json"
 SCHEMA_PATH = "templates/release/manifest.schema.json"
+REPOSITORY_SCHEMA_PATH = "templates/release/repository-manifest.schema.json"
 OUTPUT_PATHS = frozenset({CHECKSUMS_PATH, MANIFEST_PATH})
 SEMVER_TAG_PATTERN = re.compile(
     r"^v(0|[1-9][0-9]*)\."
@@ -33,27 +46,44 @@ SEMVER_TAG_PATTERN = re.compile(
 SEMVER_PATTERN = re.compile("^" + SEMVER_TAG_PATTERN.pattern[2:])
 UTC_TIMESTAMP_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 PLACEHOLDER_PATTERN = re.compile(r"^\{\{([A-Za-z0-9:-]+)\}\}$")
-RAW_PLACEHOLDER_PATTERN = re.compile(
-    r'(?<!")\{\{([A-Za-z0-9:-]+)\}\}(?!")'
-)
+RAW_PLACEHOLDER_PATTERN = re.compile(r'(?<!")\{\{([A-Za-z0-9:-]+)\}\}(?!")')
 
 
 class ReleaseArtifactError(RuntimeError):
     """Raised when release artifacts cannot be prepared or validated."""
 
 
+@overload
+def run_git(root: Path, *arguments: str, binary: Literal[False] = False) -> str: ...
+
+
+@overload
+def run_git(root: Path, *arguments: str, binary: Literal[True]) -> bytes: ...
+
+
 def run_git(root: Path, *arguments: str, binary: bool = False) -> str | bytes:
-    result = subprocess.run(
-        ["git", "-C", str(root), *arguments],
-        check=False,
-        capture_output=True,
-        text=not binary,
+    timeout = (
+        GIT_BULK_TIMEOUT_SECONDS
+        if arguments and arguments[0] in {"ls-files", "ls-tree"}
+        else GIT_TIMEOUT_SECONDS
     )
+    try:
+        result = git_objects.process_runner.run(
+            [git_objects.git_executable(), "-C", str(root), *arguments],
+            text=not binary,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise ReleaseArtifactError(
+            f"git {' '.join(arguments)} timed out after {timeout}s"
+        ) from error
+    except OSError as error:
+        raise ReleaseArtifactError(
+            f"Unable to run git {' '.join(arguments)}: {error}"
+        ) from error
     if result.returncode != 0:
         stderr = (
-            result.stderr.decode("utf-8", errors="replace")
-            if binary
-            else result.stderr
+            result.stderr.decode("utf-8", errors="replace") if binary else result.stderr
         )
         raise ReleaseArtifactError(
             f"git {' '.join(arguments)} failed: {stderr.strip()}"
@@ -65,9 +95,7 @@ def require_repository_root(value: Path) -> Path:
     root = value.resolve()
     if not root.is_dir():
         raise ReleaseArtifactError(f"Repository root does not exist: {root}")
-    actual = Path(
-        str(run_git(root, "rev-parse", "--show-toplevel")).strip()
-    ).resolve()
+    actual = Path(str(run_git(root, "rev-parse", "--show-toplevel")).strip()).resolve()
     if actual != root:
         raise ReleaseArtifactError(f"Repository root must be the Git root: {root}")
     return root
@@ -91,39 +119,16 @@ def sha256_bytes(content: bytes) -> str:
 
 
 def read_blobs(root: Path, records: list[tuple[str, str, str]]) -> dict[str, bytes]:
-    if not records:
-        return {}
-    object_ids = [record[2] for record in records]
-    result = subprocess.run(
-        ["git", "-C", str(root), "cat-file", "--batch"],
-        input=("\n".join(object_ids) + "\n").encode("ascii"),
-        check=False,
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        raise ReleaseArtifactError(
-            "git cat-file --batch failed: "
-            + result.stderr.decode("utf-8", errors="replace").strip()
-        )
-    contents: dict[str, bytes] = {}
-    offset = 0
-    for path, _mode, expected_id in records:
-        header_end = result.stdout.find(b"\n", offset)
-        if header_end < 0:
-            raise ReleaseArtifactError("git cat-file returned an incomplete header.")
-        header = result.stdout[offset:header_end].decode("ascii").split(" ")
-        if len(header) != 3 or header[0] != expected_id or header[1] != "blob":
-            raise ReleaseArtifactError(f"Unexpected Git object for {path}.")
-        size = int(header[2])
-        content_start = header_end + 1
-        content_end = content_start + size
-        if result.stdout[content_end : content_end + 1] != b"\n":
-            raise ReleaseArtifactError("git cat-file returned incomplete blob content.")
-        contents[path] = result.stdout[content_start:content_end]
-        offset = content_end + 1
-    if offset != len(result.stdout):
-        raise ReleaseArtifactError("git cat-file returned unexpected trailing output.")
-    return contents
+    """Compatibility adapter for callers that need all blob contents."""
+    with git_objects.blob_stream(
+        root,
+        [record[2] for record in records],
+        timeout=GIT_BULK_TIMEOUT_SECONDS,
+        error_type=ReleaseArtifactError,
+    ) as blobs:
+        return {
+            record[0]: content for record, content in zip(records, blobs, strict=True)
+        }
 
 
 def index_records(root: Path) -> list[tuple[str, str, str]]:
@@ -209,25 +214,69 @@ def file_record(path: str, mode: str, content: bytes) -> dict[str, Any]:
     }
 
 
-def release_payload(
-    entries: dict[str, tuple[str, bytes]], version: str, prepare: bool
-) -> tuple[list[dict[str, Any]], bytes]:
-    filtered = {
-        path: value for path, value in entries.items() if path not in OUTPUT_PATHS
+def release_inventory(
+    root: Path, treeish: str | None
+) -> tuple[list[dict[str, Any]], dict[str, tuple[str, bytes]]]:
+    """Hash one blob at a time, retaining only release control content."""
+    records = tree_records(root, treeish) if treeish else index_records(root)
+    retained_paths = {
+        VERSION_PATH,
+        CHECKSUMS_PATH,
+        MANIFEST_PATH,
+        SCHEMA_PATH,
+        REPOSITORY_SCHEMA_PATH,
+        TEMPLATE_PATH,
     }
+    retained: dict[str, tuple[str, bytes]] = {}
+    files: list[dict[str, Any]] = []
+    with git_objects.blob_stream(
+        root,
+        [record[2] for record in records],
+        timeout=GIT_BULK_TIMEOUT_SECONDS,
+        error_type=ReleaseArtifactError,
+    ) as blobs:
+        for path, mode, _object_id in records:
+            content = next(blobs)
+            if path in retained_paths:
+                retained[path] = (mode, content)
+            if path not in OUTPUT_PATHS:
+                files.append(file_record(path, mode, content))
+            del content
+        next(blobs, None)  # Consume the batch trailer and verify the exit status.
+    return files, retained
+
+
+def _payload_from_records(
+    records: list[dict[str, Any]],
+    version_entry: tuple[str, bytes] | None,
+    version: str,
+    prepare: bool,
+) -> tuple[list[dict[str, Any]], bytes]:
     version_content = f"{version}\n".encode("utf-8")
     if prepare:
-        filtered[VERSION_PATH] = ("100644", version_content)
-    elif filtered.get(VERSION_PATH) != ("100644", version_content):
+        records = [
+            record for record in records if record["relative_path"] != VERSION_PATH
+        ]
+        records.append(file_record(VERSION_PATH, "100644", version_content))
+    elif version_entry != ("100644", version_content):
         raise ReleaseArtifactError("VERSION does not match the manifest version.")
-    records = [
-        file_record(path, *filtered[path])
-        for path in sorted(filtered, key=lambda value: value.encode("utf-8"))
-    ]
+    records.sort(key=lambda record: record["relative_path"].encode("utf-8"))
     checksums = "".join(
         f"{record['sha256']}  {record['relative_path']}\n" for record in records
     ).encode("utf-8")
     return records, checksums
+
+
+def release_payload(
+    entries: dict[str, tuple[str, bytes]], version: str, prepare: bool
+) -> tuple[list[dict[str, Any]], bytes]:
+    """Compatibility adapter for callers with materialized Git entries."""
+    records = [
+        file_record(path, mode, content)
+        for path, (mode, content) in entries.items()
+        if path not in OUTPUT_PATHS
+    ]
+    return _payload_from_records(records, entries.get(VERSION_PATH), version, prepare)
 
 
 def parse_release_date(value: str) -> str:
@@ -370,7 +419,9 @@ def build_manifest(
     )
     artifacts = template.get("artifacts")
     if not isinstance(artifacts, list) or len(artifacts) != 1:
-        raise ReleaseArtifactError("manifest template must define one artifact prototype")
+        raise ReleaseArtifactError(
+            "manifest template must define one artifact prototype"
+        )
     artifact_template = artifacts[0]
     if not isinstance(artifact_template, dict):
         raise ReleaseArtifactError("artifact prototype must be an object")
@@ -389,25 +440,19 @@ def build_manifest(
         "minimum-upgradable-source-semver-number": metadata["update"].get(
             "min_source_version"
         ),
-        "update-strategy-patch-or-full-reinstall": metadata["update"].get(
-            "strategy"
-        ),
+        "update-strategy-patch-or-full-reinstall": metadata["update"].get("strategy"),
         "preserve-paths-json-array": metadata["update"].get("preserve_paths"),
         "remove-obsolete-files-boolean": metadata["update"].get(
             "remove_obsolete_files"
         ),
         "backup-required-boolean": metadata["update"].get("backup_required"),
         "restart-required-boolean": metadata["update"].get("restart_required"),
-        "rollback-supported-boolean": metadata["update"].get(
-            "rollback_supported"
-        ),
+        "rollback-supported-boolean": metadata["update"].get("rollback_supported"),
         "migrations-json-array": metadata["update"].get("migrations"),
         "artifact-id": metadata["artifact"]["id"],
         "target-os": metadata["artifact"]["target"]["os"],
         "target-architecture": metadata["artifact"]["target"]["arch"],
-        "target-minimum-os-version": metadata["artifact"]["target"][
-            "min_os_version"
-        ],
+        "target-minimum-os-version": metadata["artifact"]["target"]["min_os_version"],
         "artifact-archive-type": "git-tree",
         "artifact-total-files": len(files),
         "artifact-size-in-bytes": sum(item["size_bytes"] for item in files),
@@ -447,13 +492,46 @@ def build_manifest(
     return manifest
 
 
+def build_repository_manifest(
+    version: str,
+    release_date: str,
+    files: list[dict[str, Any]],
+    checksums: bytes,
+) -> dict[str, Any]:
+    return {
+        "manifest_version": "3.0.0",
+        "release_kind": "repository",
+        "version": version,
+        "release_date": release_date,
+        "artifact": {
+            "format": "git-tree",
+            "files": files,
+            "total_files": len(files),
+            "size_bytes": sum(item["size_bytes"] for item in files),
+            "sha256": sha256_bytes(checksums),
+            "built_at": release_date,
+        },
+    }
+
+
+def manifest_kind(manifest: dict[str, Any]) -> str:
+    if (
+        manifest.get("manifest_version") == "3.0.0"
+        and manifest.get("release_kind") == "repository"
+    ):
+        return "repository"
+    if manifest.get("manifest_version") == "2.0.0" and "release_kind" not in manifest:
+        return "deployment"
+    raise ReleaseArtifactError("Unsupported manifest_version or release_kind")
+
+
 def validate_schema(
     root: Path,
     manifest: dict[str, Any],
     schema_content: bytes | None = None,
 ) -> None:
     try:
-        from jsonschema import Draft202012Validator, FormatChecker
+        from jsonschema import Draft202012Validator, FormatChecker  # type: ignore[import-untyped]
     except ImportError as error:
         raise ReleaseArtifactError(
             "jsonschema is required; install tools/release-artifacts-requirements.txt"
@@ -476,19 +554,14 @@ def validate_schema(
         ) from error
     if errors:
         details = "; ".join(
-            f"{'/'.join(str(part) for part in error.path) or '<root>'}: "
-            f"{error.message}"
+            f"{'/'.join(str(part) for part in error.path) or '<root>'}: {error.message}"
             for error in errors
         )
-        raise ReleaseArtifactError(
-            f"Manifest does not match the schema: {details}"
-        )
+        raise ReleaseArtifactError(f"Manifest does not match the schema: {details}")
 
 
 def manifest_bytes(manifest: dict[str, Any]) -> bytes:
-    return (json.dumps(manifest, ensure_ascii=False, indent=4) + "\n").encode(
-        "utf-8"
-    )
+    return (json.dumps(manifest, ensure_ascii=False, indent=4) + "\n").encode("utf-8")
 
 
 def write_outputs(root: Path, outputs: dict[str, bytes]) -> None:
@@ -518,18 +591,38 @@ def write_outputs(root: Path, outputs: dict[str, bytes]) -> None:
                 target.unlink(missing_ok=True)
             else:
                 target.write_bytes(old_content)
-        raise ReleaseArtifactError(f"Unable to write release artifacts: {error}") from error
+        raise ReleaseArtifactError(
+            f"Unable to write release artifacts: {error}"
+        ) from error
     finally:
         for path in temporary.values():
             path.unlink(missing_ok=True)
 
 
 def ref_exists(root: Path, ref: str) -> bool:
-    result = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", ref],
-        check=False,
-        capture_output=True,
-    )
+    try:
+        result = git_objects.process_runner.run(
+            [
+                git_objects.git_executable(),
+                "-C",
+                str(root),
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                ref,
+            ],
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise ReleaseArtifactError(
+            f"git rev-parse {ref} timed out after {GIT_TIMEOUT_SECONDS}s"
+        ) from error
+    except OSError as error:
+        raise ReleaseArtifactError(
+            f"Unable to resolve Git ref {ref}: {error}"
+        ) from error
+    if result.returncode not in {0, 1}:
+        raise ReleaseArtifactError(f"git rev-parse {ref} failed: {result.stderr!r}")
     return result.returncode == 0
 
 
@@ -545,12 +638,31 @@ def confirm_write(force: bool) -> None:
 
 def prepare_artifacts(args: argparse.Namespace) -> int:
     root = require_repository_root(args.repository_root)
-    metadata = load_metadata(root, args.metadata_file)
+    if args.kind == "deployment" and args.metadata_file is None:
+        raise ReleaseArtifactError("deployment preparation requires --metadata-file")
+    if args.kind == "repository" and args.metadata_file is not None:
+        raise ReleaseArtifactError("repository preparation rejects --metadata-file")
     version = version_from_ref(args.release_ref)
     release_date = parse_release_date(args.release_date)
-    files, checksums = release_payload(git_entries(root, "HEAD"), version, True)
-    manifest = build_manifest(root, metadata, version, release_date, files, checksums)
-    validate_schema(root, manifest)
+    treeish = None if args.index else (args.treeish or "HEAD")
+    records, retained = release_inventory(root, treeish)
+    files, checksums = _payload_from_records(
+        records, retained.get(VERSION_PATH), version, True
+    )
+    if args.kind == "repository":
+        manifest = build_repository_manifest(version, release_date, files, checksums)
+        schema_entry = retained.get(REPOSITORY_SCHEMA_PATH)
+        if schema_entry is None:
+            raise ReleaseArtifactError(
+                "selected Git content does not contain the repository manifest schema"
+            )
+        validate_schema(root, manifest, schema_entry[1])
+    else:
+        metadata = load_metadata(root, args.metadata_file)
+        manifest = build_manifest(
+            root, metadata, version, release_date, files, checksums
+        )
+        validate_schema(root, manifest)
     outputs = {
         VERSION_PATH: f"{version}\n".encode("utf-8"),
         CHECKSUMS_PATH: checksums,
@@ -566,6 +678,7 @@ def prepare_artifacts(args: argparse.Namespace) -> int:
         "releaseRef": args.release_ref,
         "files": len(files),
         "changed": changed,
+        "treeish": treeish or "index",
     }
     if args.dry_run:
         print(json.dumps(report, indent=2))
@@ -587,17 +700,21 @@ def check_artifacts(args: argparse.Namespace) -> int:
             recorded_ref = f"v{worktree_version}"
             if ref_exists(root, f"refs/tags/{recorded_ref}^{{commit}}"):
                 requested_treeish = recorded_ref
-    entries = git_entries(root, requested_treeish)
+    records, entries = release_inventory(root, requested_treeish)
     manifest_entry = entries.get(MANIFEST_PATH)
     if manifest_entry is None:
-        raise ReleaseArtifactError("selected Git content does not contain manifest.json")
+        raise ReleaseArtifactError(
+            "selected Git content does not contain manifest.json"
+        )
     try:
         manifest = json.loads(manifest_entry[1].decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ReleaseArtifactError("selected manifest.json is invalid JSON") from error
     if not isinstance(manifest, dict):
         raise ReleaseArtifactError("selected manifest.json must contain an object")
-    schema_entry = entries.get(SCHEMA_PATH)
+    kind = manifest_kind(manifest)
+    schema_path = REPOSITORY_SCHEMA_PATH if kind == "repository" else SCHEMA_PATH
+    schema_entry = entries.get(schema_path)
     if schema_entry is None:
         raise ReleaseArtifactError(
             "selected Git content does not contain the manifest schema"
@@ -609,54 +726,71 @@ def check_artifacts(args: argparse.Namespace) -> int:
     expected_ref = args.expected_ref or f"v{version}"
     if expected_ref != f"v{version}":
         raise ReleaseArtifactError("manifest version does not match the expected ref")
-    files, checksums = release_payload(entries, version, False)
+    files, checksums = _payload_from_records(
+        records, entries.get(VERSION_PATH), version, False
+    )
     checksums_entry = entries.get(CHECKSUMS_PATH)
     if checksums_entry is None or checksums_entry[1] != checksums:
         raise ReleaseArtifactError("SHA256SUMS does not match the selected Git content")
-    artifacts = manifest.get("artifacts")
-    if not isinstance(artifacts, list) or len(artifacts) != 1:
-        raise ReleaseArtifactError("manifest must contain one git-tree artifact")
-    artifact = artifacts[0]
-    template_entry = entries.get(TEMPLATE_PATH)
-    if template_entry is None:
-        raise ReleaseArtifactError(
-            "selected Git content does not contain the manifest template"
+    if kind == "repository":
+        release_date = manifest.get("release_date")
+        if not isinstance(release_date, str):
+            raise ReleaseArtifactError("manifest release_date must be a UTC timestamp")
+        parse_release_date(release_date)
+        if manifest_entry[0] != "100644" or checksums_entry[0] != "100644":
+            raise ReleaseArtifactError(
+                "repository release outputs must use Git mode 100644"
+            )
+        expected_manifest = build_repository_manifest(
+            version, release_date, files, checksums
         )
-    expected_manifest = build_manifest(
-        root,
-        {
-            "program_id": manifest["program_id"],
-            "name": manifest["name"],
-            "channel": manifest["channel"],
-            "critical_update": manifest["critical_update"],
-            "release_notes": manifest["release_notes"],
-            "update": manifest["update"],
-            "artifact": {
-                "id": artifact["id"],
-                "target": artifact["target"],
+        if manifest != expected_manifest:
+            raise ReleaseArtifactError("manifest git-tree inventory is inconsistent")
+    else:
+        artifacts = manifest.get("artifacts")
+        if not isinstance(artifacts, list) or len(artifacts) != 1:
+            raise ReleaseArtifactError("manifest must contain one git-tree artifact")
+        artifact = artifacts[0]
+        template_entry = entries.get(TEMPLATE_PATH)
+        if template_entry is None:
+            raise ReleaseArtifactError(
+                "selected Git content does not contain the manifest template"
+            )
+        expected_manifest = build_manifest(
+            root,
+            {
+                "program_id": manifest["program_id"],
+                "name": manifest["name"],
+                "channel": manifest["channel"],
+                "critical_update": manifest["critical_update"],
+                "release_notes": manifest["release_notes"],
+                "update": manifest["update"],
+                "artifact": {
+                    "id": artifact["id"],
+                    "target": artifact["target"],
+                },
+                "metadata": manifest["metadata"],
             },
-            "metadata": manifest["metadata"],
-        },
-        version,
-        manifest["release_date"],
-        files,
-        checksums,
-        template_entry[1],
-    )
-    if manifest != expected_manifest:
-        raise ReleaseArtifactError(
-            "manifest.json does not match the selected manifest template"
+            version,
+            manifest["release_date"],
+            files,
+            checksums,
+            template_entry[1],
         )
-    expected_size = sum(item["size_bytes"] for item in files)
-    if (
-        artifact.get("format") != "git-tree"
-        or artifact.get("files") != files
-        or artifact.get("total_files") != len(files)
-        or artifact.get("size_bytes") != expected_size
-        or artifact.get("sha256") != sha256_bytes(checksums)
-        or artifact.get("built_at") != manifest.get("release_date")
-    ):
-        raise ReleaseArtifactError("manifest git-tree inventory is inconsistent")
+        if manifest != expected_manifest:
+            raise ReleaseArtifactError(
+                "manifest.json does not match the selected manifest template"
+            )
+        expected_size = sum(item["size_bytes"] for item in files)
+        if (
+            artifact.get("format") != "git-tree"
+            or artifact.get("files") != files
+            or artifact.get("total_files") != len(files)
+            or artifact.get("size_bytes") != expected_size
+            or artifact.get("sha256") != sha256_bytes(checksums)
+            or artifact.get("built_at") != manifest.get("release_date")
+        ):
+            raise ReleaseArtifactError("manifest git-tree inventory is inconsistent")
     print(
         json.dumps(
             {
@@ -691,7 +825,13 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = subparsers.add_parser("prepare", help="prepare release artifacts")
     prepare.add_argument("--release-ref", required=True)
     prepare.add_argument("--release-date", required=True)
-    prepare.add_argument("--metadata-file", type=Path, required=True)
+    prepare.add_argument(
+        "--kind", choices=("repository", "deployment"), default="deployment"
+    )
+    prepare.add_argument("--metadata-file", type=Path)
+    prepare_selected = prepare.add_mutually_exclusive_group()
+    prepare_selected.add_argument("--treeish")
+    prepare_selected.add_argument("--index", action="store_true")
     prepare.add_argument("--repository-root", type=Path, default=Path.cwd())
 
     check = subparsers.add_parser("check", help="validate release artifacts")
@@ -708,9 +848,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.verbose:
-            print(
-                f"Repository root: {args.repository_root.resolve()}", file=sys.stderr
-            )
+            print(f"Repository root: {args.repository_root.resolve()}", file=sys.stderr)
         if args.command == "prepare":
             return prepare_artifacts(args)
         return check_artifacts(args)
