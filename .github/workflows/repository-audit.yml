@@ -5,112 +5,331 @@ name: Repository audit
   release:
     types: [published]
   push:
+    branches: [main, master, "codex/release-preflight-*"]
+    tags: ["v*"]
   pull_request:
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.25.1"
-  SHFMT_VERSION: v3.13.1
+  NODE_VERSION: "24.20.0"
+
+concurrency:
+  group: repository-audit-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  markdown:
-    name: Markdown lint
+  activation:
+    name: Read trusted automation configuration
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      enabled: ${{ steps.resolve.outputs.enabled || steps.activation.outputs.enabled }}
+      trusted_sha: ${{ steps.resolve.outputs.trusted_sha }}
+    steps:
+      - id: resolve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" != push || "$REF_NAME" != codex/release-preflight-* ]]; then
+            printf 'enabled=true\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          set -euo pipefail
+          default_branch="$(gh api "repos/$GH_REPO" --jq '.default_branch')"
+          export DEFAULT_BRANCH="$default_branch"
+          encoded_branch="$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DEFAULT_BRANCH"], safe=""))')"
+          trusted_sha="$(gh api "repos/$GH_REPO/commits/$encoded_branch" --jq '.sha')"
+          [[ "$trusted_sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          printf 'trusted_sha=%s\n' "$trusted_sha" >> "$GITHUB_OUTPUT"
+        name: Resolve immutable default-branch snapshot
+      # actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ steps.resolve.outputs.trusted_sha }}
+        if: steps.resolve.outputs.trusted_sha != ''
+        name: Check out the immutable revision
+      - id: activation
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |-
+          python3 -B tools/automation_config.py \
+            --automation releasePreflight --event "$EVENT_NAME" >> "$GITHUB_OUTPUT"
+        if: steps.resolve.outputs.trusted_sha != ''
+        name: Read activation before dependencies and credentials
 
+  quality-linux:
+    needs: activation
+    if: needs.activation.outputs.enabled == 'true'
+    name: Quality - Ubuntu 24.04 / Python 3.11
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
-        # actions/checkout@v7.0.0
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        # actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          persist-credentials: false
-
-      - name: Run markdown audit
-        run: bash tools/repository-audit.sh markdown
-
-  spelling:
-    name: Spelling
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout repository
-        # actions/checkout@v7.0.0
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
-
-      - name: Run spelling audit
-        run: bash tools/repository-audit.sh spelling
-
-  static:
-    name: Static checks
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout repository
-        # actions/checkout@v7.0.0
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-
-      - name: Set up Go
-        # actions/setup-go@v6.4.0
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+          persist-credentials: false
+      - name: Verify exact audit revision
+        shell: bash
+        env:
+          AUDIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$AUDIT_COMMIT_SHA"
+      - name: Set up Python
+        # actions/setup-python@v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          cache: false
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Install Shfmt
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: tools/quality/requirements.lock
+      - name: Set up Node
+        # actions/setup-node@v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            tools/quality/package-lock.json
+            tools/quality/versions.json
+      - name: Install locked language toolchains
         shell: bash
         run: |
-          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
-          go install "mvdan.cc/sh/v3/cmd/shfmt@${SHFMT_VERSION}"
-
-      - name: Run static audit
+          python -m pip install --disable-pip-version-check \
+            --require-hashes \
+            --requirement tools/quality/requirements.lock
+          npm ci --ignore-scripts --prefix tools/quality
+      - name: Install verified external tools
+        shell: bash
+        run: |
+          python tools/quality/install-external-tools.py \
+            --platform linux-x64 \
+            --install-root "$RUNNER_TEMP/quality-tools"
+          echo "$RUNNER_TEMP/quality-tools/bin" >> "$GITHUB_PATH"
+          echo "PSModulePath=$RUNNER_TEMP/quality-tools/Modules:${PSModulePath:-}" \
+            >> "$GITHUB_ENV"
+      - name: Run the complete quality gate
         shell: bash
         env:
           AUDIT_COMMIT_SHA: >-
-            ${{ github.event.pull_request.head.sha ||
-            github.sha }}
+            ${{ github.event.pull_request.head.sha || github.sha }}
           BEFORE_SHA: >-
             ${{ github.event_name == 'release' &&
             '0000000000000000000000000000000000000000' ||
             github.event.before }}
+          GITHUB_TOKEN: ${{ github.token }}
           GIT_AUTHOR_NAME: Codex
           GIT_AUTHOR_EMAIL: codex@example.com
           GIT_COMMITTER_NAME: Codex
           GIT_COMMITTER_EMAIL: codex@example.com
-        run: bash tools/repository-audit.sh static
+        run: bash tools/repository-audit.sh full
+
+  compatibility-windows:
+    needs: activation
+    if: needs.activation.outputs.enabled == 'true'
+    name: Compatibility - Windows 2025 / Python 3.14
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        # actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact audit revision
+        shell: bash
+        env:
+          AUDIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$AUDIT_COMMIT_SHA"
+      - name: Set up Python
+        # actions/setup-python@v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tools/quality/requirements.lock
+      - name: scope
+        id: scope
+        shell: bash
+        run: |-
+          scope="$(python -B tools/project_validation.py --scope)"
+          printf "scope=%s\n" "$scope" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        # actions/setup-node@v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            tools/quality/package-lock.json
+            tools/quality/versions.json
+      - name: Install locked language toolchains
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check `
+            --require-hashes `
+            --requirement tools/quality/requirements.lock
+          npm ci --ignore-scripts --prefix tools/quality
+      - name: Install verified Windows quality tools
+        shell: pwsh
+        run: |
+          python tools/quality/install-external-tools.py `
+            --platform windows-x64 `
+            --tool PSScriptAnalyzer `
+            --tool shfmt --tool shellcheck `
+            --install-root "$env:RUNNER_TEMP/quality-tools"
+          Add-Content $env:GITHUB_PATH "$env:RUNNER_TEMP/quality-tools/bin"
+          Add-Content $env:GITHUB_ENV `
+            "PSModulePath=$env:RUNNER_TEMP/quality-tools/Modules$([IO.Path]::PathSeparator)$env:PSModulePath"
+      - name: Run cross-platform compatibility checks
+        shell: bash
+        run: bash tools/repository-audit.sh fast
+      - name: Run the complete Python suite on 3.14
+        if: steps.scope.outputs.scope == 'source'
+        shell: pwsh
+        run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Verify Git Bash hooks on Windows
+        if: steps.scope.outputs.scope == 'source'
+        shell: bash
+        run: |
+          bash tests/test_quality_pre_commit.sh --windows
+          bash tests/test_quality_pre_push.sh --windows
+      - name: Analyze PowerShell on Windows
+        shell: bash
+        run: bash tools/repository-audit.sh powershell-static
+
+  project-linux:
+    name: Project checks - linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: activation
+    if: needs.activation.outputs.enabled == 'true'
+    steps:
+      # actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        name: Check out the immutable revision
+      - shell: bash
+        env:
+          AUDIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$AUDIT_COMMIT_SHA"
+        name: Verify exact audit revision
+      # actions/setup-python@v7.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.11'
+        name: Set up Python
+      # actions/setup-node@v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+        name: Set up Node for project checks
+      - name: Install locked project validation dependencies
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check \
+            --require-hashes --requirement tools/quality/requirements.lock
+          npm ci --ignore-scripts --prefix tools/quality
+      - name: Install verified project shell linters
+        shell: bash
+        run: |
+          platform=linux-x64
+          if [[ "$RUNNER_OS" == Windows ]]; then platform=windows-x64; fi
+          python tools/quality/install-external-tools.py \
+            --platform "$platform" --tool shfmt --tool shellcheck \
+            --install-root "$RUNNER_TEMP/project-quality-tools"
+          echo "$RUNNER_TEMP/project-quality-tools/bin" >> "$GITHUB_PATH"
+      - shell: bash
+        run: python -B tools/project_validation.py --repository-root . --timeout 900
+        name: Require selected checks to succeed
+
+  project-windows:
+    name: Project checks - windows
+    runs-on: windows-2025
+    timeout-minutes: 20
+    needs: activation
+    if: needs.activation.outputs.enabled == 'true'
+    steps:
+      # actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        name: Check out the immutable revision
+      - shell: bash
+        env:
+          AUDIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$AUDIT_COMMIT_SHA"
+        name: Verify exact audit revision
+      # actions/setup-python@v7.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+        name: Set up Python
+      # actions/setup-node@v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+        name: Set up Node for project checks
+      - name: Install locked project validation dependencies
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check \
+            --require-hashes --requirement tools/quality/requirements.lock
+          npm ci --ignore-scripts --prefix tools/quality
+      - name: Install verified project shell linters
+        shell: bash
+        run: |
+          platform=linux-x64
+          if [[ "$RUNNER_OS" == Windows ]]; then platform=windows-x64; fi
+          python tools/quality/install-external-tools.py \
+            --platform "$platform" --tool shfmt --tool shellcheck \
+            --install-root "$RUNNER_TEMP/project-quality-tools"
+          echo "$RUNNER_TEMP/project-quality-tools/bin" >> "$GITHUB_PATH"
+      - shell: bash
+        run: python -B tools/project_validation.py --repository-root . --timeout 900
+        name: Require selected checks to succeed
 
   repository-audit:
-    name: >-
-      ${{ github.event_name == 'workflow_dispatch' &&
-      'Repository audit (manual)' || 'Repository audit' }}
+    name: ${{ github.event_name == 'workflow_dispatch' && 'Repository audit (manual)' || 'Repository audit' }}
     needs:
-      - markdown
-      - spelling
-      - static
-    if: ${{ always() }}
+      - activation
+      - quality-linux
+      - compatibility-windows
+      - project-linux
+      - project-windows
+    if: ${{ always() && needs.activation.outputs.enabled != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-
     steps:
-      - name: Require every audit job
-        env:
-          MARKDOWN_RESULT: ${{ needs.markdown.result }}
-          SPELLING_RESULT: ${{ needs.spelling.result }}
-          STATIC_RESULT: ${{ needs.static.result }}
+      - env:
+          LINUX_RESULT: ${{ needs.quality-linux.result }}
+          WINDOWS_RESULT: ${{ needs.compatibility-windows.result }}
+          ACTIVATION_RESULT: ${{ needs.activation.result }}
+          PROJECT_LINUX_RESULT: ${{ needs.project-linux.result }}
+          PROJECT_WINDOWS_RESULT: ${{ needs.project-windows.result }}
         run: |
-          if [ "$MARKDOWN_RESULT" != "success" ] ||
-            [ "$SPELLING_RESULT" != "success" ] ||
-            [ "$STATIC_RESULT" != "success" ]; then
-            printf '%s\n' \
-              "Repository audit requires every child job to succeed." >&2
-            exit 1
-          fi
+          test "$ACTIVATION_RESULT" = success &&
+          test "$LINUX_RESULT" = success && test "$WINDOWS_RESULT" = success &&
+          test "$PROJECT_LINUX_RESULT" = success && test "$PROJECT_WINDOWS_RESULT" = success
+        name: Require selected checks to succeed

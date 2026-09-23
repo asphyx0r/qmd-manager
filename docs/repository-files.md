@@ -205,22 +205,13 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 ### `.github/workflows/repository-audit.yml`
 
 - Type: `file`
-- Status: `optional`
-- Goal: Runs the shared repository audit and publishes one aggregate required
-  check on GitHub Actions.
-- Usage: Executes on pushes, pull requests, published releases, and manual
-  dispatch.
-- Notes: The workflow uses a pinned runner and a checkout action pinned by
-  SHA for `actions/checkout@v7.0.0`. It delegates Markdown, spelling,
-  static, smoke, and configuration rules to `tools/repository-audit.sh` so
-  local and CI audits share the same source of truth. Push and release runs
-  validate the complete applicable commit range, and one aggregation job must
-  succeed after every required audit job. Tool downloads are version-pinned
-  but not hash-verified;
-  this is an accepted lightweight CI tradeoff for this repository with
-  read-only repository audit permissions, disabled checkout credential
-  persistence, and without forwarding the workflow token to checked-out audit
-  code.
+- Status: `required`
+- Goal: Validates core ownership and explicit project checks on Linux and Windows.
+- Usage: Executes on pushes, pull requests, published releases and manual dispatch.
+- Notes: Actions are pinned by commit; external tool downloads are hash-verified.
+  Independent project jobs install their own locked dependencies. The aggregate
+  `Repository audit` check requires every selected child job to succeed at the
+  exact audited revision.
 
 ### `.github/workflows/agent-rules-update.yml`
 
@@ -380,7 +371,7 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Goal: Records the original and current published starter-kit core baselines.
 - Usage: Inspect `source` for the initial package and `current` for the latest
   cumulative core upgrade.
-- Notes: Preserves `source=v2.3.3` while recording `current=v2.5.0`, with the
+- Notes: Preserves `source=v2.3.3` while recording `current=v2.11.2`, with the
   strategy, mode, and digest of every managed core file.
 
 ### `VERSION`
@@ -694,29 +685,13 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 ### `tools/repository-audit.sh`
 
 - Type: `file`
-- Status: `optional`
-- Goal: Runs the shared local and CI repository audit rules.
-- Usage: Run `bash tools/repository-audit.sh` locally before creating a
-  release tag or GitHub release. GitHub Actions invokes the same script with
-  mode-specific `markdown`, `spelling`, and `static` arguments.
-- Notes: Defaults to the full profile, with `full` as an explicit alias. Full
-  profiles own Markdown lint, spelling, Git whitespace, Bash syntax, ShellCheck
-  for shell scripts and Git hooks, complete PowerShell parsing, QMD Manager,
-  Python, and release-artifact tests, cross-language SemVer pattern drift
-  checks, workflow and secret scanner contracts, smoke behavior, Commitlint
-  configuration, exact message fixtures, and commit checks for the complete
-  applicable range. The
-  optional `readonly` profile uses installed tools, disables optional Git
-  locks, avoids network access, package installation, tracked-file changes,
-  and mutating smoke tests, and also checks YAML, workflows, and secrets. It
-  may use isolated temporary files for parsing and tests. Full profiles
-  bootstrap pinned Codespell and JSON Schema dependencies in temporary Python
-  targets, handle WSL-aware
-  PowerShell command, path, and temporary directory compatibility through the
-  ignored `.tmp/` path when needed, use
-  version-pinned package downloads without hash verification, document the
-  npm and PyPI network requirements, and fail when required local
-  tools are unavailable instead of silently skipping CI rules.
+- Status: `required`
+- Goal: Dispatches the shared modular audit used by local hooks and CI.
+- Usage: Run `full`, `fast` or `powershell-static` for distributed core checks,
+  then run `python -B tools/project_validation.py --repository-root .`.
+- Notes: Consumer core modes print the project-check plan; project checks must
+  also execute to validate application behavior. See
+  [the migration record](core-upgrade-v2.11.2.md) for local adaptations.
 
 ### `tools/release-artifacts.py`
 
@@ -988,3 +963,49 @@ assets, reusable templates, and paths that are deferred or explicitly excluded.
 - Goal: Provides a reusable support policy structure for future projects.
 - Usage: Replace placeholders with project-specific support channels.
 - Notes: Keep the root file concrete and this file generic.
+
+## Core v2.11.2 additions
+
+These required maintenance files supplement the existing records above.
+Their adoption and adaptations are documented in
+[the migration record](core-upgrade-v2.11.2.md).
+
+| File | Purpose |
+| --- | --- |
+| `.github/dependabot.yml` | Schedules updates for locked quality dependencies and workflow actions. |
+| `.github/workflows/guarded-pull-request-merge.yml` | Validates an explicitly requested PR integration at verified revisions. |
+| `.starter-kit-project.json` | Declares project tests, deployment releases and automation activation. |
+| `docs/core-upgrade-v2.11.2.json` | Records reviewed core overlays and their canonical SHA-256 digests. |
+| `docs/core-upgrade-v2.11.2.md` | Records migration scope, retained behavior, checks and rollback. |
+| `docs/guarded-pull-request-merges.md` | Documents the opt-in guarded merge workflow. |
+| `docs/project-configuration.md` | Documents the distributed core/project validation contract. |
+| `templates/release/repository-manifest.schema.json` | Validates repository-source releases when explicitly selected. |
+| `tests/test_starter_core_migration.py` | Covers failure propagation, executable resolution and dependency safety. |
+| `tools/automation_config.py` | Reads trusted automation activation settings. |
+| `tools/git-inventory-context/HEAD` | Provides the repository inventory context helper. |
+| `tools/git-inventory-context/objects/.gitkeep` | Provides the repository inventory context helper. |
+| `tools/git-inventory-context/refs/.gitkeep` | Provides the repository inventory context helper. |
+| `tools/git_objects.py` | Resolves literal Git objects and validates object identifiers. |
+| `tools/initialize-repository.py` | Initializes repositories from the distributed package. |
+| `tools/merge-pull-request.py` | Implements the guarded PR integration contract. |
+| `tools/process_runner.py` | Contains child processes and enforces execution deadlines. |
+| `tools/project_config.py` | Validates roles, release modes, automations and checks. |
+| `tools/project_validation.py` | Selects core ownership and executes explicit project checks. |
+| `tools/quality/PSScriptAnalyzerSettings.psd1` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/check-versions.py` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/install-external-tools.py` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/package-lock.json` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/package.json` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/pyproject.toml` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/requirements.in` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/requirements.lock` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/versions.json` | Defines or validates the pinned maintenance toolchain. |
+| `tools/quality/yamllint.yaml` | Defines or validates the pinned maintenance toolchain. |
+| `tools/repository-audit/agent-rules-transfer.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/common.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/contracts.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/hooks.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/profiles.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/security.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/smoke.sh` | Provides a module of the distributed audit and hook implementation. |
+| `tools/repository-audit/workflow-contracts.py` | Provides a module of the distributed audit and hook implementation. |
