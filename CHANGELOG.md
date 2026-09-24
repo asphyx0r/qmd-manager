@@ -2,6 +2,13 @@
 
 All notable changes to QMD Manager will be documented in this file.
 
+## v1.1.5
+
+| References | Description | Author(s) |
+| --- | --- | --- |
+| 81dae8b | chore(tools): update locked quality tools | asphyx |
+| bc081d7 | chore(tools): adopt starter kit v2.11.2 | asphyx |
+
 ## v1.1.4
 
 | References | Description | Author(s) |
