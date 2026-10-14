@@ -99,7 +99,7 @@ jobs:
           cache-dependency-path: tools/quality/requirements.lock
       - name: Set up Node
         # actions/setup-node@v7.0.0
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -172,7 +172,7 @@ jobs:
           printf "scope=%s\n" "$scope" >> "$GITHUB_OUTPUT"
       - name: Set up Node
         # actions/setup-node@v7.0.0
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -239,7 +239,7 @@ jobs:
           python-version: '3.11'
         name: Set up Python
       # actions/setup-node@v7.0.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: ${{ env.NODE_VERSION }}
         name: Set up Node for project checks
@@ -287,7 +287,7 @@ jobs:
           python-version: '3.14'
         name: Set up Python
       # actions/setup-node@v7.0.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: ${{ env.NODE_VERSION }}
         name: Set up Node for project checks
